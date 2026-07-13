@@ -150,7 +150,7 @@ function CpqlSection() {
 
       {data && (
         <>
-          <div className="mt-3 flex gap-6 text-sm">
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3 text-sm">
             <Stat label="Spend" value={money(data.totals.spend)} />
             <Stat label="Leads" value={String(data.totals.leads)} />
             <Stat label="Qualified" value={String(data.totals.qualified)} />

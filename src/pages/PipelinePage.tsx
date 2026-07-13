@@ -1,7 +1,8 @@
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -43,8 +44,13 @@ export function PipelinePage() {
   const [activeLead, setActiveLead] = useState<CrmLead | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Mouse drags start after 6px; touch needs a 220ms hold so normal
+  // swipes still scroll the board on phones.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 220, tolerance: 8 },
+    }),
   );
 
   const leadsByStage = useMemo(() => {
@@ -255,7 +261,7 @@ function DraggableCard({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={isDragging ? 'opacity-40' : ''}
+      className={`touch-manipulation ${isDragging ? 'opacity-40' : ''}`}
     >
       <LeadCard lead={lead} onClaim={onClaim} onRelease={onRelease} />
     </div>

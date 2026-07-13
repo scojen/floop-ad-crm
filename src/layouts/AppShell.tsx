@@ -7,8 +7,6 @@ import { initials } from '../lib/initials';
 interface NavItem {
   to: string;
   label: string;
-  /** Phase in which the screen ships; rendered as a "soon" hint until then. */
-  soon?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -30,10 +28,53 @@ export function AppShell() {
   }
 
   const actor = usersData?.users.find((user) => user.id === actorId);
+  const avatar = (
+    <span
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+      style={{ backgroundColor: actor?.avatarColor ?? '#6b7280' }}
+    >
+      {actor ? initials(actor.displayName) : '?'}
+    </span>
+  );
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="flex w-48 shrink-0 flex-col border-r border-neutral-200 bg-white px-3 py-4">
+    <div className="flex min-h-screen flex-col md:flex-row">
+      {/* Mobile: sticky top bar with scrollable nav chips */}
+      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white md:hidden">
+        <div className="flex items-center justify-between px-4 pt-2.5">
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+            Floop Ad CRM
+          </h1>
+          <button
+            type="button"
+            onClick={clearActor}
+            title="Switch rep"
+            className="p-1"
+          >
+            {avatar}
+          </button>
+        </div>
+        <nav className="flex gap-1.5 overflow-x-auto px-3 py-2 [scrollbar-width:none]">
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `shrink-0 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  isActive
+                    ? 'border-neutral-800 bg-neutral-800 font-medium text-white'
+                    : 'border-neutral-200 text-neutral-600'
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      </header>
+
+      {/* Desktop: left sidebar */}
+      <aside className="hidden w-48 shrink-0 flex-col border-r border-neutral-200 bg-white px-3 py-4 md:flex">
         <h1 className="px-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">
           Floop Ad CRM
         </h1>
@@ -51,11 +92,6 @@ export function AppShell() {
               }
             >
               <span>{item.label}</span>
-              {item.soon && (
-                <span className="text-[10px] uppercase text-neutral-300">
-                  soon
-                </span>
-              )}
             </NavLink>
           ))}
         </nav>
@@ -65,17 +101,12 @@ export function AppShell() {
           title="Switch rep"
           className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-neutral-600 transition-colors hover:bg-neutral-50"
         >
-          <span
-            className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-            style={{ backgroundColor: actor?.avatarColor ?? '#6b7280' }}
-          >
-            {actor ? initials(actor.displayName) : '?'}
-          </span>
+          {avatar}
           <span className="truncate">{actor?.displayName ?? 'Unknown'}</span>
         </button>
       </aside>
 
-      <main className="flex-1 overflow-auto px-6 py-5">
+      <main className="min-w-0 flex-1 overflow-auto px-4 py-4 md:px-6 md:py-5">
         <Outlet />
       </main>
     </div>

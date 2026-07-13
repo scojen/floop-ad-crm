@@ -125,7 +125,7 @@ export function InboxPage() {
       )}
 
       {selected.size > 0 && (
-        <div className="mb-3 flex items-center gap-3 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm">
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm md:gap-3">
           <span className="font-medium text-neutral-700">
             {selected.size} selected
           </span>
@@ -155,7 +155,35 @@ export function InboxPage() {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+      {/* Mobile: card list */}
+      <div className="space-y-2 md:hidden">
+        {inbox.isLoading && (
+          <div className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-400">
+            Loading queue…
+          </div>
+        )}
+        {inbox.data && leads.length === 0 && (
+          <div className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-400">
+            Inbox zero — no unworked leads.
+          </div>
+        )}
+        {leads.map((lead) => (
+          <MobileLeadCard
+            key={lead.id}
+            lead={lead}
+            selected={selected.has(lead.id)}
+            onToggle={() => toggle(lead.id)}
+            onClaim={() => handleClaim(lead)}
+            onAccept={() => handleAccept(lead)}
+            onDiscard={() =>
+              setDiscardTarget({ kind: 'single', leadIds: [lead.id] })
+            }
+          />
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden overflow-x-auto rounded-lg border border-neutral-200 bg-white md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-400">
@@ -322,6 +350,104 @@ function InboxRow({
   );
 }
 
+function MobileLeadCard({
+  lead,
+  selected,
+  onToggle,
+  onClaim,
+  onAccept,
+  onDiscard,
+}: {
+  lead: CrmLead;
+  selected: boolean;
+  onToggle: () => void;
+  onClaim: () => void;
+  onAccept: () => void;
+  onDiscard: () => void;
+}) {
+  const severity = ageSeverity(lead.submittedAt);
+  const preview =
+    lead.email ??
+    lead.phone ??
+    lead.formAnswers[0]?.values[0] ??
+    lead.externalLeadId;
+
+  return (
+    <div
+      className={`rounded-lg border bg-white p-3 ${selected ? 'border-neutral-500' : 'border-neutral-200'}`}
+    >
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggle}
+          className="mt-1 h-4 w-4 accent-neutral-700"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-neutral-900">
+            {lead.fullName ?? 'Unknown'}
+            {lead.qualityFlags.map((flag) => (
+              <QualityFlag key={flag} flag={flag} />
+            ))}
+          </div>
+          <div className="truncate text-xs text-neutral-400">{preview}</div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <span className="inline-block max-w-44 truncate rounded-full border border-neutral-200 px-2 py-0.5 text-[10px] text-neutral-600">
+              {lead.campaignName ?? lead.adName ?? lead.platform}
+            </span>
+            <span
+              className={`text-[11px] font-medium tabular-nums ${
+                severity === 'late'
+                  ? 'text-red-600'
+                  : severity === 'warn'
+                    ? 'text-amber-600'
+                    : 'text-neutral-400'
+              }`}
+            >
+              {timeAgo(lead.submittedAt)}
+              {severity === 'late' && ' ⚠'}
+            </span>
+          </div>
+        </div>
+        {lead.claimedBy && (
+          <span
+            title={`Claimed by ${lead.claimedBy.displayName}`}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+            style={{ backgroundColor: lead.claimedBy.avatarColor ?? '#6b7280' }}
+          >
+            {initials(lead.claimedBy.displayName)}
+          </span>
+        )}
+      </div>
+      <div className="mt-2.5 flex gap-2">
+        {!lead.claimedBy && (
+          <button
+            type="button"
+            onClick={onClaim}
+            className="flex-1 rounded-md border border-neutral-300 py-2 text-xs font-medium text-neutral-600 active:bg-neutral-100"
+          >
+            Claim
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onDiscard}
+          className="flex-1 rounded-md border border-neutral-200 py-2 text-xs text-neutral-500 active:bg-red-50"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          onClick={onAccept}
+          className="flex-1 rounded-md border border-green-600 py-2 text-xs font-medium text-green-700 active:bg-green-50"
+        >
+          Accept →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function QualityFlag({ flag }: { flag: string }) {
   const labels: Record<string, string> = {
     placeholder_email: 'placeholder email?',
@@ -356,7 +482,7 @@ function DiscardDialog({
   const [note, setNote] = useState('');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
       <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-6 shadow-lg">
         <h3 className="text-sm font-semibold text-neutral-900">
           Discard {count === 1 ? 'lead' : `${count} leads`}
