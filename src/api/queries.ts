@@ -3,7 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { clientPath, getJson, postJson } from './crmClient';
+import { clientPath, getJson, patchJson, postJson } from './crmClient';
 import type {
   CampaignListResponse,
   PerformanceBreakdownResponse,
@@ -19,7 +19,15 @@ import type {
   CrmLead,
   CrmLeadsListResponse,
   DiscardReason,
+  LeadOutcome,
+  PipelineStage,
 } from '../types/leads';
+import type {
+  ActivitiesListResponse,
+  Activity,
+  ActivityType,
+  PipelineStatsResponse,
+} from '../types/pipeline';
 
 export const queryKeys = {
   users: ['crm', 'users'] as const,
@@ -30,6 +38,9 @@ export const queryKeys = {
   syncLog: (platform: CrmPlatform) => ['crm', 'sync-log', platform] as const,
   inbox: ['crm', 'inbox'] as const,
   lead: (id: string) => ['crm', 'lead', id] as const,
+  board: ['crm', 'board'] as const,
+  pipelineStats: ['crm', 'pipeline-stats'] as const,
+  activities: (leadId: string) => ['crm', 'activities', leadId] as const,
 };
 
 export function useCrmUsers() {
@@ -127,6 +138,10 @@ function useInboxRowMutation<TVariables extends { leadId: string }>(
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inbox });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.board });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.pipelineStats,
+      });
     },
   });
 }
@@ -185,6 +200,145 @@ export function useBulkLeadAction() {
       ),
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inbox });
+    },
+  });
+}
+
+export function useBoard() {
+  return useQuery({
+    queryKey: queryKeys.board,
+    queryFn: () =>
+      getJson<CrmLeadsListResponse>(clientPath('/crm/pipeline/board')),
+    refetchInterval: 30_000,
+  });
+}
+
+export function usePipelineStats() {
+  return useQuery({
+    queryKey: queryKeys.pipelineStats,
+    queryFn: () =>
+      getJson<PipelineStatsResponse>(clientPath('/crm/pipeline/stats')),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useLead(leadId: string) {
+  return useQuery({
+    queryKey: queryKeys.lead(leadId),
+    queryFn: () => getJson<CrmLead>(clientPath(`/crm/leads/${leadId}`)),
+  });
+}
+
+export function useActivities(leadId: string) {
+  return useQuery({
+    queryKey: queryKeys.activities(leadId),
+    queryFn: () =>
+      getJson<ActivitiesListResponse>(
+        clientPath(`/crm/leads/${leadId}/activities`),
+      ),
+  });
+}
+
+/** Drag-and-drop stage move with optimistic board update + rollback. */
+export function useUpdateStage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      leadId,
+      stage,
+    }: {
+      leadId: string;
+      stage: PipelineStage;
+    }) =>
+      patchJson<CrmLead>(clientPath(`/crm/leads/${leadId}/stage`), { stage }),
+    onMutate: ({ leadId, stage }) => {
+      const previous = queryClient.getQueryData<CrmLeadsListResponse>(
+        queryKeys.board,
+      );
+      if (previous) {
+        queryClient.setQueryData<CrmLeadsListResponse>(queryKeys.board, {
+          ...previous,
+          leads: previous.leads.map((lead) =>
+            lead.id === leadId
+              ? {
+                  ...lead,
+                  pipelineStage: stage,
+                  stageEnteredAt: new Date().toISOString(),
+                }
+              : lead,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.board, context.previous);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.board });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.pipelineStats,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.lead(variables.leadId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.activities(variables.leadId),
+      });
+    },
+  });
+}
+
+export function useSetOutcome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      leadId,
+      outcome,
+    }: {
+      leadId: string;
+      outcome: LeadOutcome;
+    }) =>
+      patchJson<CrmLead>(clientPath(`/crm/leads/${leadId}/outcome`), {
+        outcome,
+      }),
+    onSettled: (_data, _error, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.lead(variables.leadId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.activities(variables.leadId),
+      });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.board });
+    },
+  });
+}
+
+export function useLogActivity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      leadId,
+      type,
+      body,
+    }: {
+      leadId: string;
+      type: ActivityType;
+      body: string;
+    }) =>
+      postJson<Activity>(clientPath(`/crm/leads/${leadId}/activities`), {
+        type,
+        body,
+      }),
+    onSettled: (_data, _error, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.activities(variables.leadId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.lead(variables.leadId),
+      });
     },
   });
 }

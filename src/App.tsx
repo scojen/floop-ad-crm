@@ -4,6 +4,8 @@ import { CampaignsPage } from './pages/CampaignsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { ConnectionsPage } from './pages/ConnectionsPage';
 import { InboxPage } from './pages/InboxPage';
+import { LeadDetailPage } from './pages/LeadDetailPage';
+import { PipelinePage } from './pages/PipelinePage';
 
 function App() {
   return (
@@ -13,16 +15,8 @@ function App() {
           <Route index element={<Navigate to="/campaigns" replace />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/inbox" element={<InboxPage />} />
-          <Route
-            path="/pipeline"
-            element={
-              <ComingSoonPage
-                title="Pipeline"
-                phase="Phase 3"
-                description="Kanban board with claim state and aging indicators."
-              />
-            }
-          />
+          <Route path="/pipeline" element={<PipelinePage />} />
+          <Route path="/leads/:leadId" element={<LeadDetailPage />} />
           <Route
             path="/my-day"
             element={
