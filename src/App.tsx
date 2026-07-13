@@ -1,11 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { AppShell } from './layouts/AppShell';
+import { AutomationsPage } from './pages/AutomationsPage';
 import { CampaignsPage } from './pages/CampaignsPage';
-import { ComingSoonPage } from './pages/ComingSoonPage';
 import { ConnectionsPage } from './pages/ConnectionsPage';
 import { InboxPage } from './pages/InboxPage';
 import { LeadDetailPage } from './pages/LeadDetailPage';
+import { MyDayPage } from './pages/MyDayPage';
 import { PipelinePage } from './pages/PipelinePage';
+import { ReportsPage } from './pages/ReportsPage';
 
 function App() {
   return (
@@ -17,36 +19,9 @@ function App() {
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/pipeline" element={<PipelinePage />} />
           <Route path="/leads/:leadId" element={<LeadDetailPage />} />
-          <Route
-            path="/my-day"
-            element={
-              <ComingSoonPage
-                title="My Day"
-                phase="Phase 4"
-                description="Overdue and due-today follow-ups, sorted by urgency."
-              />
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <ComingSoonPage
-                title="Reports"
-                phase="Phase 4"
-                description="Funnel, cost per qualified lead, creative performance."
-              />
-            }
-          />
-          <Route
-            path="/automations"
-            element={
-              <ComingSoonPage
-                title="Automations"
-                phase="Phase 4"
-                description="Single-condition when-X-do-Y rules with a runs log."
-              />
-            }
-          />
+          <Route path="/my-day" element={<MyDayPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/automations" element={<AutomationsPage />} />
           <Route path="/connections" element={<ConnectionsPage />} />
           <Route path="*" element={<Navigate to="/campaigns" replace />} />
         </Route>

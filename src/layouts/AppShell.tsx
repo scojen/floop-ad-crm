@@ -15,9 +15,9 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/campaigns', label: 'Campaigns' },
   { to: '/inbox', label: 'Inbox' },
   { to: '/pipeline', label: 'Pipeline' },
-  { to: '/my-day', label: 'My Day', soon: true },
-  { to: '/reports', label: 'Reports', soon: true },
-  { to: '/automations', label: 'Automations', soon: true },
+  { to: '/my-day', label: 'My Day' },
+  { to: '/reports', label: 'Reports' },
+  { to: '/automations', label: 'Automations' },
   { to: '/connections', label: 'Connections' },
 ];
 

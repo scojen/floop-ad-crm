@@ -28,6 +28,17 @@ import type {
   ActivityType,
   PipelineStatsResponse,
 } from '../types/pipeline';
+import type {
+  AutomationRule,
+  AutomationRulesListResponse,
+  AutomationRunsListResponse,
+  CpqlReportResponse,
+  CreativePerformanceResponse,
+  CrmTask,
+  FunnelReportResponse,
+  TaskBucket,
+  TasksListResponse,
+} from '../types/v15';
 
 export const queryKeys = {
   users: ['crm', 'users'] as const,
@@ -41,6 +52,11 @@ export const queryKeys = {
   board: ['crm', 'board'] as const,
   pipelineStats: ['crm', 'pipeline-stats'] as const,
   activities: (leadId: string) => ['crm', 'activities', leadId] as const,
+  tasks: (bucket: TaskBucket) => ['crm', 'tasks', bucket] as const,
+  automations: ['crm', 'automations'] as const,
+  automationRuns: (ruleId: string) =>
+    ['crm', 'automation-runs', ruleId] as const,
+  reports: (name: string) => ['crm', 'reports', name] as const,
 };
 
 export function useCrmUsers() {
@@ -340,6 +356,110 @@ export function useLogActivity() {
         queryKey: queryKeys.lead(variables.leadId),
       });
     },
+  });
+}
+
+export function useTasks(bucket: TaskBucket) {
+  return useQuery({
+    queryKey: queryKeys.tasks(bucket),
+    queryFn: () =>
+      getJson<TasksListResponse>(clientPath(`/crm/tasks?bucket=${bucket}`)),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useCompleteTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId }: { taskId: string; bucket: TaskBucket }) =>
+      patchJson<CrmTask>(clientPath(`/crm/tasks/${taskId}`), {
+        status: 'DONE',
+      }),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['crm', 'tasks'] });
+    },
+  });
+}
+
+export function useAutomationRules() {
+  return useQuery({
+    queryKey: queryKeys.automations,
+    queryFn: () =>
+      getJson<AutomationRulesListResponse>(clientPath('/crm/automations')),
+  });
+}
+
+export function useAutomationRuns(ruleId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.automationRuns(ruleId ?? 'none'),
+    queryFn: () =>
+      getJson<AutomationRunsListResponse>(
+        clientPath(`/crm/automations/${ruleId}/runs`),
+      ),
+    enabled: ruleId !== null,
+  });
+}
+
+export function useCreateAutomationRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      name: string;
+      triggerType: string;
+      triggerConfig: Record<string, unknown>;
+      actionType: string;
+      actionConfig: Record<string, unknown>;
+    }) => postJson<AutomationRule>(clientPath('/crm/automations'), input),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.automations });
+    },
+  });
+}
+
+export function useToggleAutomationRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ruleId,
+      isEnabled,
+    }: {
+      ruleId: string;
+      isEnabled: boolean;
+    }) =>
+      patchJson<AutomationRule>(clientPath(`/crm/automations/${ruleId}`), {
+        isEnabled,
+      }),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.automations });
+    },
+  });
+}
+
+export function useFunnelReport() {
+  return useQuery({
+    queryKey: queryKeys.reports('funnel'),
+    queryFn: () =>
+      getJson<FunnelReportResponse>(clientPath('/crm/reports/funnel')),
+  });
+}
+
+export function useCpqlReport() {
+  return useQuery({
+    queryKey: queryKeys.reports('cpql'),
+    queryFn: () =>
+      getJson<CpqlReportResponse>(
+        clientPath('/crm/reports/cost-per-qualified-lead'),
+      ),
+  });
+}
+
+export function useCreativeReport() {
+  return useQuery({
+    queryKey: queryKeys.reports('creative'),
+    queryFn: () =>
+      getJson<CreativePerformanceResponse>(
+        clientPath('/crm/reports/creative-performance'),
+      ),
   });
 }
 

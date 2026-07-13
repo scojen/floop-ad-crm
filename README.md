@@ -15,9 +15,9 @@ Product spec: `ad-manager-api/meta-leads-crm-spec.md` · wireframes:
 | `/inbox` | Lead triage queue (shared, oldest-unclaimed-first) | ✅ |
 | `/pipeline` | Kanban board with claim/aging indicators | ✅ |
 | `/leads/:id` | Lead detail: attribution + activity timeline + outcome | ✅ |
-| `/my-day` | Rep task queue | Phase 4 |
-| `/reports` | Funnel / cost-per-qualified-lead / creative performance | Phase 4 |
-| `/automations` | When-X-do-Y rules + runs log | Phase 4 |
+| `/my-day` | Rep task queue | ✅ |
+| `/reports` | Funnel / cost-per-qualified-lead / creative performance | ✅ |
+| `/automations` | When-X-do-Y rules + runs log | ✅ |
 
 ## Stack
 
