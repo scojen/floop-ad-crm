@@ -3,6 +3,7 @@ import { AppShell } from './layouts/AppShell';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { ConnectionsPage } from './pages/ConnectionsPage';
+import { InboxPage } from './pages/InboxPage';
 
 function App() {
   return (
@@ -11,16 +12,7 @@ function App() {
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/campaigns" replace />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
-          <Route
-            path="/inbox"
-            element={
-              <ComingSoonPage
-                title="Inbox — unworked leads"
-                phase="Phase 2"
-                description="Shared triage queue, oldest unclaimed first."
-              />
-            }
-          />
+          <Route path="/inbox" element={<InboxPage />} />
           <Route
             path="/pipeline"
             element={

@@ -13,7 +13,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/campaigns', label: 'Campaigns' },
-  { to: '/inbox', label: 'Inbox', soon: true },
+  { to: '/inbox', label: 'Inbox' },
   { to: '/pipeline', label: 'Pipeline', soon: true },
   { to: '/my-day', label: 'My Day', soon: true },
   { to: '/reports', label: 'Reports', soon: true },
