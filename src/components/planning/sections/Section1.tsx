@@ -6,9 +6,13 @@ import {
   type Control,
 } from 'react-hook-form';
 import type { BriefFormValues } from '../../../lib/schema/campaign-brief';
-import { requiredBuildFor } from '../../../lib/schema/sections/s0-client';
+import {
+  economicShapeFor,
+  engineFor,
+  type EconomicShape,
+} from '../../../lib/schema/sections/s0-client';
 import type { DerivedCalcs } from '../../../lib/calc/derive';
-import { FIELD_INFO } from '../../../lib/planning-copy';
+import { FIELD_INFO, SHAPE_UI } from '../../../lib/planning-copy';
 import {
   CheckboxField,
   CurrencyOrPercentField,
@@ -23,7 +27,9 @@ export function Section1({ calc }: { calc: DerivedCalcs | null }) {
   const vertical = useWatch({ control, name: 's0.vertical' });
   const businessModel = useWatch({ control, name: 's0.businessModel' });
   const intent = useWatch({ control, name: 's0.campaignIntent' });
-  const build = requiredBuildFor(vertical);
+  const shape = economicShapeFor(vertical, businessModel);
+  const build = engineFor(shape) === 'chain' ? 'leadGen' : 'ecom';
+  const ui = SHAPE_UI[shape];
 
   if (intent === 'AWARENESS') {
     return (
@@ -73,7 +79,7 @@ export function Section1({ calc }: { calc: DerivedCalcs | null }) {
         </span>
       }
     >
-      {build === 'ecom' ? <EcomBuild /> : <LeadGenBuild />}
+      {build === 'ecom' ? <LinearBuild shape={shape} /> : <ChainBuild shape={shape} />}
 
       <div className="sm:col-span-2 mt-1 border-t border-neutral-100 pt-3">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
@@ -82,47 +88,54 @@ export function Section1({ calc }: { calc: DerivedCalcs | null }) {
       </div>
       <NumberField
         name="s1.targets.requiredContributionAfterAds"
-        label={
-          build === 'ecom'
-            ? 'Required contribution after ads (per order)'
-            : 'Required contribution after ads (per raw lead)'
-        }
+        label={`Required contribution after ads (per ${ui.unitNoun})`}
         prefix="$"
         info={FIELD_INFO.requiredContribution}
       />
 
       <WhatIfPanel visible={build === 'ecom'} calc={calc} />
 
-      {businessModel === 'SUBSCRIPTION' && <LtvBlock />}
+      {(businessModel === 'SUBSCRIPTION' || shape === 'SUBSCRIBER') && <LtvBlock />}
     </SectionCard>
   );
 }
 
-function EcomBuild() {
+function LinearBuild({ shape }: { shape: EconomicShape }) {
+  const ui = SHAPE_UI[shape];
   return (
     <>
       <div className="sm:col-span-2">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-          1a · Contribution build (ecommerce)
+          {ui.buildHeading}
         </h4>
       </div>
-      <NumberField name="s1.ecom.aov" label="Gross order value (AOV)" prefix="$" info={FIELD_INFO.aov} />
-      <CurrencyOrPercentField
-        name="s1.ecom.promo"
-        label="Avg promo / discount per order"
+      <NumberField
+        name="s1.ecom.aov"
+        label={ui.aovLabel}
+        prefix="$"
+        info={shape === 'PER_ORDER' ? FIELD_INFO.aov : undefined}
       />
-      <NumberField name="s1.ecom.cogs" label="COGS" prefix="$" info={FIELD_INFO.cogs} />
-      <NumberField name="s1.ecom.fulfillment" label="Fulfillment & shipping" prefix="$" />
+      {shape === 'TAKE_RATE' && (
+        <NumberField
+          name="s1.ecom.takeRatePct"
+          label="Take rate — the % you keep"
+          suffix="%"
+          help="Commission + fees as a % of the transaction. Every number below is computed on this share, not on GMV."
+        />
+      )}
+      <CurrencyOrPercentField name="s1.ecom.promo" label={ui.promoLabel} />
+      <NumberField name="s1.ecom.cogs" label={ui.cogsLabel} prefix="$" info={shape === 'PER_ORDER' ? FIELD_INFO.cogs : undefined} />
+      <NumberField name="s1.ecom.fulfillment" label={ui.fulfillmentLabel} prefix="$" />
       <NumberField name="s1.ecom.paymentPct" label="Payment processing %" suffix="%" />
       <NumberField name="s1.ecom.paymentFixed" label="Payment fixed fee" prefix="$" />
       <NumberField
         name="s1.ecom.expectedReturnsPct"
-        label="Expected returns / refunds"
+        label={ui.returnsLabel}
         suffix="%"
       />
       <NumberField
         name="s1.ecom.returnsCostOverride"
-        label="Returns cost override (optional)"
+        label={`${shape === 'BOOKING' ? 'No-show' : 'Returns'} cost override (optional)`}
         prefix="$"
         help="Wins over the % when set."
       />
@@ -212,35 +225,37 @@ function NumberInputRaw({
   );
 }
 
-function LeadGenBuild() {
+function ChainBuild({ shape }: { shape: EconomicShape }) {
+  const ui = SHAPE_UI[shape];
+  const stages = ui.chainStages ?? ['', '', ''];
   return (
     <>
       <div className="sm:col-span-2">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-          1b · Contribution build (lead gen / high-ticket)
+          {ui.buildHeading}
         </h4>
       </div>
       <NumberField
         name="s1.leadGen.contributionPerClose"
-        label="Expected COLLECTED contribution per closed deal"
+        label={ui.chainValueLabel ?? ''}
         prefix="$"
-        help="Collected, not signed. A signed case is not cash. §2.5"
-        info={FIELD_INFO.collectedContribution}
+        help={ui.chainValueHelp}
+        info={shape === 'PIPELINE' ? FIELD_INFO.collectedContribution : undefined}
       />
       <NumberField
         name="s1.leadGen.pQualGivenLeadPct"
-        label="P(qualified | lead)"
+        label={stages[0]}
         suffix="%"
-        info={FIELD_INFO.funnelRates}
+        info={shape === 'PIPELINE' ? FIELD_INFO.funnelRates : undefined}
       />
       <NumberField
         name="s1.leadGen.pApptGivenQualPct"
-        label="P(appointment | qualified)"
+        label={stages[1]}
         suffix="%"
       />
       <NumberField
         name="s1.leadGen.pCloseGivenApptPct"
-        label="P(close | appointment)"
+        label={stages[2]}
         suffix="%"
       />
     </>

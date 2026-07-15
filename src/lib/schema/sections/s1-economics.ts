@@ -6,9 +6,13 @@ import {
   pct0to100,
 } from '../primitives';
 
-/** S1a — ecommerce contribution build (playbook §2.1). */
+/** S1a — linear contribution build (playbook §2.1). Field labels are
+ *  shape-aware in the UI: "AOV" reads as GMV per transaction (take-rate),
+ *  first-period revenue (subscriber), or average ticket (booking). */
 export const ecomBuildSchema = z.object({
   aov: moneyValue,
+  /** TAKE_RATE shape only: the % of the transaction the business keeps. */
+  takeRatePct: pct0to100,
   promo: currencyOrPct,
   cogs: moneyValue,
   fulfillment: moneyValue,
@@ -99,6 +103,7 @@ export type S1Values = z.infer<typeof s1Schema>;
 export const emptyS1 = (): S1Values => ({
   ecom: {
     aov: null,
+    takeRatePct: null,
     promo: { mode: 'percent', value: null },
     cogs: null,
     fulfillment: null,

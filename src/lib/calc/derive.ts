@@ -7,7 +7,12 @@ import {
   experimentRequired,
   type BriefFormValues,
 } from '../schema/campaign-brief';
-import { requiredBuildFor, type CampaignIntent } from '../schema/sections/s0-client';
+import {
+  economicShapeFor,
+  engineFor,
+  type CampaignIntent,
+  type EconomicShape,
+} from '../schema/sections/s0-client';
 import {
   applyOfferImpact,
   applyWhatIf,
@@ -35,6 +40,8 @@ import { isNum, round2, safeDiv } from './round';
 
 export interface DerivedCalcs {
   build: 'ecom' | 'leadGen';
+  /** The economic shape — decides vocabulary and verdict framing. */
+  shape: EconomicShape;
   intent: CampaignIntent | null;
   contribution: ContributionResult;
   evPerRawLead: number | null;
@@ -67,10 +74,18 @@ export interface DerivedCalcs {
 }
 
 export function deriveCalcs(brief: BriefFormValues): DerivedCalcs {
-  const build = requiredBuildFor(brief.s0.vertical);
+  const shape = economicShapeFor(brief.s0.vertical, brief.s0.businessModel);
+  const build = engineFor(shape) === 'chain' ? 'leadGen' : ('ecom' as const);
   const required = brief.s1.targets.requiredContributionAfterAds;
 
-  const contribution = computeEcomContribution(brief.s1.ecom);
+  // Take rate only participates for the TAKE_RATE shape — a value left
+  // behind after a vertical flip must not silently deflate the numbers.
+  const ecomInput =
+    shape === 'TAKE_RATE'
+      ? brief.s1.ecom
+      : { ...brief.s1.ecom, takeRatePct: null };
+
+  const contribution = computeEcomContribution(ecomInput);
   const { evPerRawLead } = computeLeadEv(brief.s1.leadGen);
   const allowableCpl = computeAllowableCpl(evPerRawLead, required);
 
@@ -133,7 +148,7 @@ export function deriveCalcs(brief: BriefFormValues): DerivedCalcs {
     build === 'ecom' && hasWhatIfLever
       ? (() => {
           const result = applyWhatIf(
-            brief.s1.ecom,
+            ecomInput,
             brief.s1.targets.whatIf,
             required,
           );
@@ -149,7 +164,7 @@ export function deriveCalcs(brief: BriefFormValues): DerivedCalcs {
     brief.s6.offerType !== null &&
     brief.s6.offerType !== 'NONE'
       ? applyOfferImpact(
-          brief.s1.ecom,
+          ecomInput,
           {
             discount: brief.s6.discount,
             giftCostPerOrder: brief.s6.giftCostPerOrder,
@@ -173,8 +188,10 @@ export function deriveCalcs(brief: BriefFormValues): DerivedCalcs {
     build === 'ecom'
       ? contribution.contribution !== null
       : evPerRawLead !== null;
+  const ltvRequired =
+    brief.s0.businessModel === 'SUBSCRIPTION' || shape === 'SUBSCRIBER';
   const ltvComplete =
-    brief.s0.businessModel !== 'SUBSCRIPTION' ||
+    !ltvRequired ||
     (isNum(brief.s1.ltv.contributionPerMonth) &&
       isNum(brief.s1.ltv.retention.value) &&
       isNum(brief.s1.ltv.plannedMonthlySpend));
@@ -186,6 +203,7 @@ export function deriveCalcs(brief: BriefFormValues): DerivedCalcs {
 
   return {
     build,
+    shape,
     intent: brief.s0.campaignIntent,
     contribution,
     evPerRawLead,

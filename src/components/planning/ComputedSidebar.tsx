@@ -6,7 +6,7 @@
  * so the page can lock/unlock sections without re-rendering per keystroke.
  */
 import { useEffect, useState } from 'react';
-import { METRIC_SENTENCES } from '../../lib/planning-copy';
+import { METRIC_SENTENCES, SHAPE_UI } from '../../lib/planning-copy';
 import { GateRow } from './GateRow';
 import { useLiveDerivation, type Derivation } from './useLiveDerivation';
 
@@ -131,13 +131,13 @@ function SidebarPanel({
         />
         {calc.build === 'leadGen' && (
           <Row
-            label="EV per raw lead"
+            label={SHAPE_UI[calc.shape].evLabel ?? 'EV per raw lead'}
             value={money(calc.evPerRawLead)}
             sentence={METRIC_SENTENCES.evPerRawLead(calc)}
           />
         )}
         <Row
-          label={calc.build === 'leadGen' ? 'Allowable CPL' : 'Allowable CAC'}
+          label={SHAPE_UI[calc.shape].allowableLabel}
           value={money(calc.targets.allowableCac)}
           strong
           sentence={METRIC_SENTENCES.allowableCac(calc)}

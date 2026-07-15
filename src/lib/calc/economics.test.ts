@@ -13,6 +13,7 @@ import {
 
 const baseBuild: EcomBuildInput = {
   aov: 100,
+  takeRatePct: null,
   promo: { mode: 'percent', value: 10 },
   cogs: 30,
   fulfillment: 8,
@@ -205,6 +206,7 @@ describe('LTV & payback (§2.3, §2.4)', () => {
 describe('applyWhatIf — the four levers', () => {
   const kettleish: EcomBuildInput = {
     aov: 145,
+    takeRatePct: null,
     promo: { mode: 'currency', value: 0 },
     cogs: 95,
     fulfillment: 25,

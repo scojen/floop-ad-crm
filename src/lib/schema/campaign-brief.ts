@@ -6,7 +6,12 @@
  * Schema says "missing/malformed"; the gate engine says "bad for business".
  */
 import { z } from 'zod';
-import { emptyS0, requiredBuildFor, s0Schema } from './sections/s0-client';
+import {
+  economicShapeFor,
+  emptyS0,
+  engineFor,
+  s0Schema,
+} from './sections/s0-client';
 import { emptyS1, s1Schema } from './sections/s1-economics';
 import { emptyS2, s2Schema } from './sections/s2-objective';
 import { emptyS3, s3Schema } from './sections/s3-measurement';
@@ -141,8 +146,9 @@ function submitRequiredness(values: BriefFormValues, ctx: z.RefinementCtx): void
   if (!s0.mediaLead.trim()) missing(ctx, ['s0', 'mediaLead'], 'Media lead is required.');
   if (!s0.backendDataAccess) missing(ctx, ['s0', 'backendDataAccess'], 'Backend data access must be declared.');
 
-  // S1 — DR: contribution build; AWARENESS: investment rationale
-  const build = requiredBuildFor(s0.vertical);
+  // S1 — DR: contribution build (shape-aware); AWARENESS: investment rationale
+  const shape = economicShapeFor(s0.vertical, s0.businessModel);
+  const build = engineFor(shape) === 'chain' ? 'leadGen' : 'ecom';
   if (awareness) {
     if (s1.awareness.plannedMonthlyBudget === null)
       missing(ctx, ['s1', 'awareness', 'plannedMonthlyBudget'], 'Planned monthly budget is required.');
@@ -150,11 +156,13 @@ function submitRequiredness(values: BriefFormValues, ctx: z.RefinementCtx): void
       missing(ctx, ['s1', 'awareness', 'futureValueHypothesis'], 'Write the future-value hypothesis: what future cash flow is this spend buying?');
   } else {
     if (build === 'ecom') {
-      if (s1.ecom.aov === null) missing(ctx, ['s1', 'ecom', 'aov'], 'AOV is required.');
-      if (s1.ecom.cogs === null) missing(ctx, ['s1', 'ecom', 'cogs'], 'COGS is required.');
+      if (s1.ecom.aov === null) missing(ctx, ['s1', 'ecom', 'aov'], 'Revenue per unit is required.');
+      if (s1.ecom.cogs === null) missing(ctx, ['s1', 'ecom', 'cogs'], 'Direct cost per unit is required.');
+      if (shape === 'TAKE_RATE' && s1.ecom.takeRatePct === null)
+        missing(ctx, ['s1', 'ecom', 'takeRatePct'], 'Take rate is required — without it every number assumes you keep 100% of GMV.');
     } else {
       if (s1.leadGen.contributionPerClose === null)
-        missing(ctx, ['s1', 'leadGen', 'contributionPerClose'], 'Collected contribution per close is required.');
+        missing(ctx, ['s1', 'leadGen', 'contributionPerClose'], shape === 'APP' ? 'Contribution per paying user is required.' : 'Collected contribution per close is required.');
       for (const key of ['pQualGivenLeadPct', 'pApptGivenQualPct', 'pCloseGivenApptPct'] as const) {
         if (s1.leadGen[key] === null)
           missing(ctx, ['s1', 'leadGen', key], 'All three funnel stage rates are required.');
@@ -162,7 +170,7 @@ function submitRequiredness(values: BriefFormValues, ctx: z.RefinementCtx): void
     }
     if (s1.targets.requiredContributionAfterAds === null)
       missing(ctx, ['s1', 'targets', 'requiredContributionAfterAds'], 'Required contribution after ads is required.');
-    if (s0.businessModel === 'SUBSCRIPTION') {
+    if (s0.businessModel === 'SUBSCRIPTION' || shape === 'SUBSCRIBER') {
       if (s1.ltv.contributionPerMonth === null)
         missing(ctx, ['s1', 'ltv', 'contributionPerMonth'], 'LTV build is required for subscription businesses.');
       if (s1.ltv.retention.value === null)
@@ -192,7 +200,7 @@ function submitRequiredness(values: BriefFormValues, ctx: z.RefinementCtx): void
     missing(ctx, ['s3', 'reconciliation', 'backendOrders7d'], 'Backend order/lead count is required.');
   if (s3.reconciliation.eventsManagerReceived7d === null)
     missing(ctx, ['s3', 'reconciliation', 'eventsManagerReceived7d'], 'Events Manager received count is required.');
-  if (build === 'leadGen' && s3.crm.connected === null)
+  if (shape === 'PIPELINE' && s3.crm.connected === null)
     missing(ctx, ['s3', 'crm', 'connected'], 'CRM → CAPI status is required for lead gen / B2B.');
   if (s3.privacy.dpaExecuted === null) missing(ctx, ['s3', 'privacy', 'dpaExecuted'], 'DPA status is required.');
   if (!s3.privacy.lawfulBasis.kind) missing(ctx, ['s3', 'privacy', 'lawfulBasis', 'kind'], 'Lawful basis is required.');
@@ -313,7 +321,7 @@ function submitRequiredness(values: BriefFormValues, ctx: z.RefinementCtx): void
     missing(ctx, ['s11', 'checkoutTested', 'tested'], 'Checkout/form test status is required.');
   if (s11.inventoryConfirmed === null)
     missing(ctx, ['s11', 'inventoryConfirmed'], 'Inventory availability must be confirmed.');
-  if (build === 'leadGen' && !awareness) {
+  if (shape === 'PIPELINE' && !awareness) {
     if (s11.intake.medianFirstResponseMinutes === null)
       missing(ctx, ['s11', 'intake', 'medianFirstResponseMinutes'], 'Median first-response time is required for lead gen.');
     if (s11.intake.capacityUtilizationPct === null)

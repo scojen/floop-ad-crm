@@ -54,6 +54,18 @@ export const GATE_COPY: Record<string, GateCopy> = {
     body: (m) =>
       `Cohort payback is ~${n(m, 'paybackMonths')} months. A profitable cohort can still create a cash crisis: scaling stacks unrecouped cohorts. Confirm the client's cash buffer in Section 1d or reduce planned spend.`,
   },
+  'G-S1-SUB-LTV-LTE-CAC': {
+    title: 'Lifetime value does not cover acquisition cost',
+    playbookRef: '§2.3',
+    body: (m) =>
+      `LTV:CAC is ${n(m, 'ltvToCac')}:1. First-order losses can be a strategy; lifetime losses are just losses — every subscriber acquired at this ratio destroys value, and scaling multiplies it.`,
+  },
+  'G-S1-TAKERATE-MISSING': {
+    title: 'Marketplace economics entered without a take rate',
+    playbookRef: '§2.1',
+    body: () =>
+      'You entered the transaction value but not the share you keep. Until the take rate is set, contribution and allowable CAC are computed as if you keep 100% of GMV — inflated by the inverse of your take. Enter the take rate before trusting any sidebar number.',
+  },
   'G-S1-SUB-FIRST-ORDER': {
     title: 'First-order ROAS below 1.0x',
     playbookRef: '§2.4',

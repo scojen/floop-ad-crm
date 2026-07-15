@@ -6,7 +6,10 @@ import {
   computeEcomContribution,
   computeTargets,
 } from '../../../lib/calc/economics';
-import { requiredBuildFor } from '../../../lib/schema/sections/s0-client';
+import {
+  economicShapeFor,
+  engineFor,
+} from '../../../lib/schema/sections/s0-client';
 import { OFFER_RISKS, OFFER_TYPES } from '../../../lib/schema/sections/s6-offer';
 import {
   CurrencyOrPercentField,
@@ -110,6 +113,7 @@ export function Section6() {
 function OfferImpactReadout() {
   const { control } = useFormContext<BriefFormValues>();
   const vertical = useWatch({ control, name: 's0.vertical' });
+  const businessModel = useWatch({ control, name: 's0.businessModel' });
   const ecom = useWatch({ control, name: 's1.ecom' });
   const required = useWatch({
     control,
@@ -120,21 +124,25 @@ function OfferImpactReadout() {
   const expectedAovImpact = useWatch({ control, name: 's6.expectedAovImpact' });
 
   const derived = useMemo(() => {
-    if (requiredBuildFor(vertical) !== 'ecom') return null;
-    const contribution = computeEcomContribution(ecom);
+    const shape = economicShapeFor(vertical, businessModel);
+    if (engineFor(shape) !== 'linear') return null;
+    // Mirror deriveCalcs: take rate participates only for the TAKE_RATE shape.
+    const build =
+      shape === 'TAKE_RATE' ? ecom : { ...ecom, takeRatePct: null };
+    const contribution = computeEcomContribution(build);
     const targets = computeTargets({
-      grossOrderValue: ecom.aov,
+      grossOrderValue: build.aov,
       netRevenue: contribution.netRevenue,
       contributionBeforeAds: contribution.contribution,
       requiredContributionAfterAds: required,
     });
     const offer = applyOfferImpact(
-      ecom,
+      build,
       { discount, giftCostPerOrder, expectedAovImpact },
       required,
     );
     return { contribution, targets, offer };
-  }, [vertical, ecom, required, discount, giftCostPerOrder, expectedAovImpact]);
+  }, [vertical, businessModel, ecom, required, discount, giftCostPerOrder, expectedAovImpact]);
 
   if (!derived) return null;
   const before = derived.targets.breakEvenRoas;

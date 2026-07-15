@@ -4,12 +4,22 @@
  * grouped by section. Ids are stable forever (they key overrides/acks).
  */
 import { isNum } from '../calc/round';
+import { roasFramed } from '../schema/sections/s0-client';
 import { lintHooks } from './hook-linter';
 import type { GateDefinition, GateContext } from './types';
 
 /** Economics gates don't apply to awareness-intent briefs. */
 const directResponse = ({ brief }: GateContext) =>
   brief.s0.campaignIntent !== 'AWARENESS';
+
+/**
+ * Per-unit ROAS gates only apply where ROAS is the verdict frame
+ * (per-order / take-rate / booking). Subscriber and app shapes are judged
+ * on LTV:CAC and payback instead (§2.3) — their first-unit loss can be
+ * intentional. Chain shapes produce null ROAS anyway; this makes it explicit.
+ */
+const roasFrame = (ctx: GateContext) =>
+  directResponse(ctx) && roasFramed(ctx.calc.shape);
 
 const s0Gates: GateDefinition[] = [
   {
@@ -29,7 +39,7 @@ const s1Gates: GateDefinition[] = [
     level: 'BLOCKING',
     overridable: true,
     evaluate: (ctx) =>
-      directResponse(ctx) &&
+      roasFrame(ctx) &&
       isNum(ctx.calc.targets.breakEvenRoas) &&
       ctx.calc.targets.breakEvenRoas > 6
         ? { meta: { breakEvenRoas: ctx.calc.targets.breakEvenRoas } }
@@ -53,7 +63,7 @@ const s1Gates: GateDefinition[] = [
     level: 'BLOCKING',
     overridable: true,
     evaluate: (ctx) => {
-      if (!directResponse(ctx)) return null;
+      if (!roasFrame(ctx)) return null;
       const { targetRoas, breakEvenRoas, allowableCac } = ctx.calc.targets;
       // Negative/zero allowable CAC is the same impossibility.
       if (ctx.calc.build === 'ecom' && isNum(allowableCac) && allowableCac <= 0) {
@@ -71,7 +81,7 @@ const s1Gates: GateDefinition[] = [
     level: 'WARNING',
     overridable: true,
     evaluate: (ctx) =>
-      directResponse(ctx) &&
+      roasFrame(ctx) &&
       isNum(ctx.calc.targets.breakEvenRoas) &&
       ctx.calc.targets.breakEvenRoas >= 4 &&
       ctx.calc.targets.breakEvenRoas <= 6
@@ -86,7 +96,10 @@ const s1Gates: GateDefinition[] = [
     evaluate: (ctx) =>
       directResponse(ctx) &&
       isNum(ctx.calc.ltv.ltvToCac) &&
-      ctx.calc.ltv.ltvToCac < 2
+      // ≤1 escalates to the blocking G-S1-SUB-LTV-LTE-CAC for subscriber
+      // shapes — this warning covers the 1–2 "thin" band.
+      ctx.calc.ltv.ltvToCac < 2 &&
+      (ctx.calc.shape !== 'SUBSCRIBER' || ctx.calc.ltv.ltvToCac > 1)
         ? { meta: { ltvToCac: ctx.calc.ltv.ltvToCac } }
         : null,
   },
@@ -101,6 +114,38 @@ const s1Gates: GateDefinition[] = [
       ctx.calc.ltv.paybackMonthsFractional > 6 &&
       !ctx.brief.s1.ltv.cashBufferConfirmed
         ? { meta: { paybackMonths: ctx.calc.ltv.paybackMonthsFractional } }
+        : null,
+  },
+  {
+    // The subscriber-shape analog of TARGET-LTE-BREAKEVEN: if lifetime
+    // value doesn't even cover the acquisition cost, no first-order
+    // framing can save it (§2.3).
+    id: 'G-S1-SUB-LTV-LTE-CAC',
+    section: 's1',
+    level: 'BLOCKING',
+    overridable: true,
+    evaluate: (ctx) =>
+      directResponse(ctx) &&
+      ctx.calc.shape === 'SUBSCRIBER' &&
+      isNum(ctx.calc.ltv.ltvToCac) &&
+      ctx.calc.ltv.ltvToCac <= 1
+        ? { meta: { ltvToCac: ctx.calc.ltv.ltvToCac } }
+        : null,
+  },
+  {
+    // A marketplace entering GMV without its take rate sees numbers
+    // inflated by the inverse of the take — the most dangerous wrong,
+    // because everything looks healthy.
+    id: 'G-S1-TAKERATE-MISSING',
+    section: 's1',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: (ctx) =>
+      directResponse(ctx) &&
+      ctx.calc.shape === 'TAKE_RATE' &&
+      isNum(ctx.brief.s1.ecom.aov) &&
+      !isNum(ctx.brief.s1.ecom.takeRatePct)
+        ? {}
         : null,
   },
   {
@@ -205,7 +250,10 @@ const s3Gates: GateDefinition[] = [
     level: 'BLOCKING',
     overridable: true,
     evaluate: ({ brief, calc }) =>
-      calc.build === 'leadGen' && brief.s3.crm.connected === false ? {} : null,
+      // Pipeline shape only — app installs report via SDK, not a sales CRM.
+      calc.shape === 'PIPELINE' && brief.s3.crm.connected === false
+        ? {}
+        : null,
   },
   {
     id: 'G-S3-PRIVACY',
@@ -484,7 +532,7 @@ const s11Gates: GateDefinition[] = [
     level: 'WARNING',
     overridable: true,
     evaluate: ({ brief, calc }) =>
-      calc.build === 'leadGen' &&
+      calc.shape === 'PIPELINE' &&
       isNum(brief.s11.intake.p90FirstResponseMinutes) &&
       brief.s11.intake.p90FirstResponseMinutes > 1440
         ? { meta: { p90h: Math.round(brief.s11.intake.p90FirstResponseMinutes / 60) } }
@@ -496,7 +544,7 @@ const s11Gates: GateDefinition[] = [
     level: 'BLOCKING',
     overridable: true,
     evaluate: ({ brief, calc }) =>
-      calc.build === 'leadGen' &&
+      calc.shape === 'PIPELINE' &&
       isNum(brief.s11.intake.capacityUtilizationPct) &&
       brief.s11.intake.capacityUtilizationPct > 95
         ? { meta: { utilization: brief.s11.intake.capacityUtilizationPct } }

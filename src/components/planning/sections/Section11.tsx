@@ -1,6 +1,6 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 import type { BriefFormValues } from '../../../lib/schema/campaign-brief';
-import { requiredBuildFor } from '../../../lib/schema/sections/s0-client';
+import { economicShapeFor } from '../../../lib/schema/sections/s0-client';
 import {
   DateField,
   NumberField,
@@ -13,7 +13,10 @@ import {
 export function Section11() {
   const { control } = useFormContext<BriefFormValues>();
   const vertical = useWatch({ control, name: 's0.vertical' });
-  const leadGen = requiredBuildFor(vertical) === 'leadGen';
+  const businessModel = useWatch({ control, name: 's0.businessModel' });
+  // Intake capacity is a PIPELINE concern (humans answering leads) — app
+  // installs don't queue for a sales rep.
+  const leadGen = economicShapeFor(vertical, businessModel) === 'PIPELINE';
 
   return (
     <SectionCard

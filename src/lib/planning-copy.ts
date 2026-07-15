@@ -5,9 +5,111 @@
  * §refs point at meta-ads-playbook.md.
  */
 import type { DerivedCalcs } from './calc/derive';
+import type { EconomicShape } from './schema/sections/s0-client';
 
 const usd = (v: number) =>
   `$${v.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+
+/**
+ * Shape-aware vocabulary for Section 1 and the sidebar. Same math engines
+ * underneath — only the unit and the words change, so a gym owner is asked
+ * about bookings and an app developer about installs, never "orders".
+ */
+export interface ShapeUi {
+  unitNoun: string;
+  buildHeading: string;
+  aovLabel: string;
+  promoLabel: string;
+  cogsLabel: string;
+  fulfillmentLabel: string;
+  returnsLabel: string;
+  allowableLabel: string;
+  /** Chain shapes only. */
+  evLabel?: string;
+  chainValueLabel?: string;
+  chainValueHelp?: string;
+  chainStages?: [string, string, string];
+}
+
+export const SHAPE_UI: Record<EconomicShape, ShapeUi> = {
+  PER_ORDER: {
+    unitNoun: 'order',
+    buildHeading: '1a · Contribution build (ecommerce)',
+    aovLabel: 'Gross order value (AOV)',
+    promoLabel: 'Avg promo / discount per order',
+    cogsLabel: 'COGS',
+    fulfillmentLabel: 'Fulfillment & shipping',
+    returnsLabel: 'Expected returns / refunds',
+    allowableLabel: 'Allowable CAC',
+  },
+  TAKE_RATE: {
+    unitNoun: 'transaction',
+    buildHeading: '1a · Contribution build (marketplace — you keep the take rate)',
+    aovLabel: 'Avg transaction value (GMV)',
+    promoLabel: 'Platform-funded promo per transaction',
+    cogsLabel: 'Direct cost per transaction',
+    fulfillmentLabel: 'Fulfillment (if platform-borne)',
+    returnsLabel: 'Expected refunds',
+    allowableLabel: 'Allowable CAC / transaction',
+  },
+  SUBSCRIBER: {
+    unitNoun: 'subscriber',
+    buildHeading: '1a · First-period contribution (per subscriber)',
+    aovLabel: 'First-period revenue per subscriber',
+    promoLabel: 'Intro discount per subscriber',
+    cogsLabel: 'First-period COGS / service cost',
+    fulfillmentLabel: 'Fulfillment & shipping (first period)',
+    returnsLabel: 'Refund / early-cancel rate',
+    allowableLabel: 'Allowable CAC / subscriber',
+  },
+  PIPELINE: {
+    unitNoun: 'raw lead',
+    buildHeading: '1b · Contribution build (lead gen / high-ticket)',
+    aovLabel: '',
+    promoLabel: '',
+    cogsLabel: '',
+    fulfillmentLabel: '',
+    returnsLabel: '',
+    allowableLabel: 'Allowable CPL',
+    evLabel: 'EV per raw lead',
+    chainValueLabel: 'Expected COLLECTED contribution per closed deal',
+    chainValueHelp: 'Collected, not signed. A signed case is not cash. §2.5',
+    chainStages: [
+      'P(qualified | lead)',
+      'P(appointment | qualified)',
+      'P(close | appointment)',
+    ],
+  },
+  APP: {
+    unitNoun: 'install',
+    buildHeading: '1b · Contribution build (app: install → payer)',
+    aovLabel: '',
+    promoLabel: '',
+    cogsLabel: '',
+    fulfillmentLabel: '',
+    returnsLabel: '',
+    allowableLabel: 'Allowable CPI (per install)',
+    evLabel: 'EV per install',
+    chainValueLabel: 'Contribution per paying user (first period or predicted LTV)',
+    chainValueHelp:
+      'What a payer is worth after store fees and variable costs — use pLTV for subscription apps.',
+    chainStages: [
+      'Activation rate (of installs)',
+      'Trial / signup rate (of activated) — 100 if N/A',
+      'Paid conversion (of trials)',
+    ],
+  },
+  BOOKING: {
+    unitNoun: 'booking',
+    buildHeading: '1a · Contribution build (per booking)',
+    aovLabel: 'Average booking value (ticket)',
+    promoLabel: 'Avg promo / discount per booking',
+    cogsLabel: 'Direct service cost per booking',
+    fulfillmentLabel: 'Supplies / variable cost',
+    returnsLabel: 'No-show / cancellation rate',
+    allowableLabel: 'Allowable CAC / booking',
+  },
+};
 
 /** Sentences under the sidebar's derived numbers. Null → don't render. */
 export const METRIC_SENTENCES: Record<
@@ -16,15 +118,15 @@ export const METRIC_SENTENCES: Record<
 > = {
   contribution: (calc) =>
     calc.contribution.contribution !== null
-      ? `Each order leaves ${usd(calc.contribution.contribution)} after every variable cost — your contribution margin (§2.1).`
+      ? `Each ${SHAPE_UI[calc.shape].unitNoun} leaves ${usd(calc.contribution.contribution)} after every variable cost — your contribution margin (§2.1).`
       : null,
   evPerRawLead: (calc) =>
     calc.evPerRawLead !== null
-      ? `A raw lead is worth ${usd(calc.evPerRawLead)} in expectation once the funnel decay is priced in — its expected value (§2.5).`
+      ? `A ${SHAPE_UI[calc.shape].unitNoun} is worth ${usd(calc.evPerRawLead)} in expectation once the funnel decay is priced in — its expected value (§2.5).`
       : null,
   allowableCac: (calc) =>
     calc.targets.allowableCac !== null
-      ? `You can pay Meta up to ${usd(calc.targets.allowableCac)} per ${calc.build === 'leadGen' ? 'raw lead — your allowable CPL' : 'new customer — your allowable CAC'} — and still hit your profit target (§2.2).`
+      ? `You can pay Meta up to ${usd(calc.targets.allowableCac)} per ${SHAPE_UI[calc.shape].unitNoun} — your ${SHAPE_UI[calc.shape].allowableLabel.toLowerCase()} — and still hit your profit target (§2.2).`
       : null,
   breakEvenRoas: (calc) =>
     calc.targets.breakEvenRoas !== null

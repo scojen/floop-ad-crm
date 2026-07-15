@@ -16,6 +16,13 @@ export interface CurrencyOrPercent {
 
 export interface EcomBuildInput {
   aov: number | null;
+  /**
+   * TAKE_RATE shape: the business keeps aov × take% — revenue is computed
+   * on the share, while gross (and therefore break-even ROAS) stays on the
+   * full transaction value, matching platform-reported purchase ROAS.
+   * Null = the business keeps the whole transaction (every other shape).
+   */
+  takeRatePct: number | null;
   promo: CurrencyOrPercent;
   cogs: number | null;
   fulfillment: number | null;
@@ -57,11 +64,16 @@ export function computeEcomContribution(
     return NULL_CONTRIBUTION;
   }
 
+  // Promo is a % of the full transaction (the buyer's discount), funded
+  // from whatever share of revenue the business actually keeps.
   const promoCost =
     input.promo.mode === 'percent'
       ? input.aov * (orZero(input.promo.value) / 100)
       : orZero(input.promo.value);
-  const netRevenue = input.aov - promoCost;
+  const revenueShare = isNum(input.takeRatePct)
+    ? input.aov * (input.takeRatePct / 100)
+    : input.aov;
+  const netRevenue = revenueShare - promoCost;
 
   const paymentCost =
     netRevenue * (orZero(input.paymentPct) / 100) + orZero(input.paymentFixed);

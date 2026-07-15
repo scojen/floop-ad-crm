@@ -2,7 +2,7 @@ import type { DerivedCalcs } from '../calc/derive';
 import type { BriefFormValues } from '../schema/campaign-brief';
 
 /** Bump when gate logic changes — stamped into every stored snapshot. */
-export const GATE_ENGINE_VERSION = 'gates-v2';
+export const GATE_ENGINE_VERSION = 'gates-v3';
 
 export type GateLevel = 'BLOCKING' | 'WARNING' | 'INFO';
 
