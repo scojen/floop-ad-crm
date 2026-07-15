@@ -26,11 +26,21 @@ import {
   inputClass,
 } from '../fields';
 
+/** Objectives that make sense for an awareness-intent brief (§1.5). */
+const AWARENESS_OBJECTIVES: readonly Objective[] = [
+  'AWARENESS',
+  'ENGAGEMENT',
+  'TRAFFIC',
+];
+
 export function Section4({ calc }: { calc: DerivedCalcs | null }) {
   const { control } = useFormContext<BriefFormValues>();
   const objective = useWatch({ control, name: 's4.objective' }) as
     | Objective
     | null;
+  const intent = useWatch({ control, name: 's0.campaignIntent' });
+  const awareness = intent === 'AWARENESS';
+  const objectives = awareness ? AWARENESS_OBJECTIVES : OBJECTIVES;
   const tree = objective ? OBJECTIVE_TREE[objective] : null;
   const learningInfeasible =
     calc?.learning.maxSupportableAdSets !== null &&
@@ -52,7 +62,12 @@ export function Section4({ calc }: { calc: DerivedCalcs | null }) {
       <SelectField
         name="s4.objective"
         label="Objective"
-        options={OBJECTIVES.map((value) => ({
+        help={
+          awareness
+            ? 'Awareness intent: conversion objectives are hidden — the platform objective must match the business bet.'
+            : undefined
+        }
+        options={objectives.map((value) => ({
           value,
           label: value.replace('_', ' ').toLowerCase(),
         }))}
@@ -79,7 +94,11 @@ export function Section4({ calc }: { calc: DerivedCalcs | null }) {
       />
       <NumberField
         name="s4.expectedWeeklyEventVolume"
-        label="Expected weekly volume of this event at planned budget"
+        label={
+          awareness
+            ? 'Expected weekly volume of this event (optional for awareness)'
+            : 'Expected weekly volume of this event at planned budget'
+        }
         info={FIELD_INFO.learningPhase}
       />
 
@@ -100,7 +119,7 @@ export function Section4({ calc }: { calc: DerivedCalcs | null }) {
       <NumberField name="s4.campaignDailyBudget" label="Daily budget" prefix="$" />
       <NumberField
         name="s4.targetCpa"
-        label="Target CPA"
+        label={awareness ? 'Target CPA (optional for awareness)' : 'Target CPA'}
         prefix="$"
         info={FIELD_INFO.targetCpa}
         help="Drives the learning-phase feasibility math. §3.3"

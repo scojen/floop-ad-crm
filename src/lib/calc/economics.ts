@@ -281,6 +281,61 @@ export function computeCashRequirement(input: CashRequirementInput): {
   };
 }
 
+export interface OfferImpactInput {
+  /** Offer discount magnitude (reduces net revenue). */
+  discount: CurrencyOrPercent;
+  /** Per-order variable cost of a gift/trial. */
+  giftCostPerOrder: number | null;
+  /** Expected AOV movement, +/- currency. */
+  expectedAovImpact: number | null;
+}
+
+/**
+ * §1.4 / S6: an offer changes the economics — recompute contribution and
+ * targets with the offer applied so the before/after is visible live.
+ */
+export function applyOfferImpact(
+  base: EcomBuildInput,
+  offer: OfferImpactInput,
+  requiredContributionAfterAds: number | null,
+): { contribution: ContributionResult; targets: TargetsResult } | null {
+  if (!isNum(base.aov) || !isNum(base.cogs)) return null;
+
+  const adjustedAov = base.aov + orZero(offer.expectedAovImpact);
+  // Fold the base promo and the offer discount into one currency figure.
+  const basePromoCost =
+    base.promo.mode === 'percent'
+      ? adjustedAov * (orZero(base.promo.value) / 100)
+      : orZero(base.promo.value);
+  const offerDiscountCost =
+    offer.discount.mode === 'percent'
+      ? adjustedAov * (orZero(offer.discount.value) / 100)
+      : orZero(offer.discount.value);
+
+  const build: EcomBuildInput = {
+    ...base,
+    aov: adjustedAov,
+    promo: {
+      mode: 'currency',
+      value: round2(basePromoCost + offerDiscountCost),
+    },
+    extraCosts: isNum(offer.giftCostPerOrder)
+      ? [
+          ...base.extraCosts,
+          { id: '__offer_gift', label: 'Offer gift cost', amount: offer.giftCostPerOrder },
+        ]
+      : base.extraCosts,
+  };
+  const contribution = computeEcomContribution(build);
+  const targets = computeTargets({
+    grossOrderValue: build.aov,
+    netRevenue: contribution.netRevenue,
+    contributionBeforeAds: contribution.contribution,
+    requiredContributionAfterAds,
+  });
+  return { contribution, targets };
+}
+
 export interface WhatIfLevers {
   /** Currency delta applied to AOV (price lever). */
   priceDelta: number | null;

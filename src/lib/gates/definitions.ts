@@ -4,7 +4,12 @@
  * grouped by section. Ids are stable forever (they key overrides/acks).
  */
 import { isNum } from '../calc/round';
-import type { GateDefinition } from './types';
+import { lintHooks } from './hook-linter';
+import type { GateDefinition, GateContext } from './types';
+
+/** Economics gates don't apply to awareness-intent briefs. */
+const directResponse = ({ brief }: GateContext) =>
+  brief.s0.campaignIntent !== 'AWARENESS';
 
 const s0Gates: GateDefinition[] = [
   {
@@ -23,9 +28,23 @@ const s1Gates: GateDefinition[] = [
     section: 's1',
     level: 'BLOCKING',
     overridable: true,
-    evaluate: ({ calc }) =>
-      isNum(calc.targets.breakEvenRoas) && calc.targets.breakEvenRoas > 6
-        ? { meta: { breakEvenRoas: calc.targets.breakEvenRoas } }
+    evaluate: (ctx) =>
+      directResponse(ctx) &&
+      isNum(ctx.calc.targets.breakEvenRoas) &&
+      ctx.calc.targets.breakEvenRoas > 6
+        ? { meta: { breakEvenRoas: ctx.calc.targets.breakEvenRoas } }
+        : null,
+  },
+  {
+    id: 'G-S1-AW-NO-GUARDRAIL',
+    section: 's1',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: ({ brief }) =>
+      brief.s0.campaignIntent === 'AWARENESS' &&
+      isNum(brief.s1.awareness.plannedMonthlyBudget) &&
+      !isNum(brief.s1.awareness.spendGuardrail.value)
+        ? {}
         : null,
   },
   {
@@ -33,10 +52,11 @@ const s1Gates: GateDefinition[] = [
     section: 's1',
     level: 'BLOCKING',
     overridable: true,
-    evaluate: ({ calc }) => {
-      const { targetRoas, breakEvenRoas, allowableCac } = calc.targets;
+    evaluate: (ctx) => {
+      if (!directResponse(ctx)) return null;
+      const { targetRoas, breakEvenRoas, allowableCac } = ctx.calc.targets;
       // Negative/zero allowable CAC is the same impossibility.
-      if (calc.build === 'ecom' && isNum(allowableCac) && allowableCac <= 0) {
+      if (ctx.calc.build === 'ecom' && isNum(allowableCac) && allowableCac <= 0) {
         return { meta: { targetRoas: '∞', breakEvenRoas: breakEvenRoas ?? '?' } };
       }
       if (isNum(targetRoas) && isNum(breakEvenRoas) && targetRoas <= breakEvenRoas) {
@@ -50,11 +70,12 @@ const s1Gates: GateDefinition[] = [
     section: 's1',
     level: 'WARNING',
     overridable: true,
-    evaluate: ({ calc }) =>
-      isNum(calc.targets.breakEvenRoas) &&
-      calc.targets.breakEvenRoas >= 4 &&
-      calc.targets.breakEvenRoas <= 6
-        ? { meta: { breakEvenRoas: calc.targets.breakEvenRoas } }
+    evaluate: (ctx) =>
+      directResponse(ctx) &&
+      isNum(ctx.calc.targets.breakEvenRoas) &&
+      ctx.calc.targets.breakEvenRoas >= 4 &&
+      ctx.calc.targets.breakEvenRoas <= 6
+        ? { meta: { breakEvenRoas: ctx.calc.targets.breakEvenRoas } }
         : null,
   },
   {
@@ -62,9 +83,11 @@ const s1Gates: GateDefinition[] = [
     section: 's1',
     level: 'WARNING',
     overridable: true,
-    evaluate: ({ calc }) =>
-      isNum(calc.ltv.ltvToCac) && calc.ltv.ltvToCac < 2
-        ? { meta: { ltvToCac: calc.ltv.ltvToCac } }
+    evaluate: (ctx) =>
+      directResponse(ctx) &&
+      isNum(ctx.calc.ltv.ltvToCac) &&
+      ctx.calc.ltv.ltvToCac < 2
+        ? { meta: { ltvToCac: ctx.calc.ltv.ltvToCac } }
         : null,
   },
   {
@@ -72,11 +95,12 @@ const s1Gates: GateDefinition[] = [
     section: 's1',
     level: 'WARNING',
     overridable: true,
-    evaluate: ({ brief, calc }) =>
-      isNum(calc.ltv.paybackMonthsFractional) &&
-      calc.ltv.paybackMonthsFractional > 6 &&
-      !brief.s1.ltv.cashBufferConfirmed
-        ? { meta: { paybackMonths: calc.ltv.paybackMonthsFractional } }
+    evaluate: (ctx) =>
+      directResponse(ctx) &&
+      isNum(ctx.calc.ltv.paybackMonthsFractional) &&
+      ctx.calc.ltv.paybackMonthsFractional > 6 &&
+      !ctx.brief.s1.ltv.cashBufferConfirmed
+        ? { meta: { paybackMonths: ctx.calc.ltv.paybackMonthsFractional } }
         : null,
   },
   {
@@ -84,11 +108,12 @@ const s1Gates: GateDefinition[] = [
     section: 's1',
     level: 'INFO',
     overridable: true,
-    evaluate: ({ brief, calc }) =>
-      brief.s0.businessModel === 'SUBSCRIPTION' &&
-      isNum(calc.targets.targetRoas) &&
-      calc.targets.targetRoas < 1
-        ? { meta: { targetRoas: calc.targets.targetRoas } }
+    evaluate: (ctx) =>
+      directResponse(ctx) &&
+      ctx.brief.s0.businessModel === 'SUBSCRIPTION' &&
+      isNum(ctx.calc.targets.targetRoas) &&
+      ctx.calc.targets.targetRoas < 1
+        ? { meta: { targetRoas: ctx.calc.targets.targetRoas } }
         : null,
   },
 ];
@@ -108,13 +133,6 @@ const s2Gates: GateDefinition[] = [
         ? {}
         : null;
     },
-  },
-  {
-    id: 'G-S2-LEARNING-NO-TESTLOG',
-    section: 's2',
-    level: 'BLOCKING',
-    overridable: true, // slice 2 replaces this with the experiment designer
-    evaluate: ({ brief }) => (brief.s2.purpose === 'LEARNING' ? {} : null),
   },
 ];
 
@@ -296,10 +314,219 @@ const s4Gates: GateDefinition[] = [
   },
 ];
 
+const s5Gates: GateDefinition[] = [
+  {
+    id: 'G-S5-NO-PURCHASER-EXCLUSION',
+    section: 's5',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: (ctx) => {
+      if (!directResponse(ctx)) return null;
+      const hasProspecting = ctx.brief.s4.adSets.some(
+        (adSet) => adSet.purpose === 'PROSPECTING',
+      );
+      return hasProspecting && ctx.brief.s5.exclusions.length === 0 ? {} : null;
+    },
+  },
+];
+
+const s6Gates: GateDefinition[] = [
+  {
+    id: 'G-S6-OFFER-BREAKS-ECONOMICS',
+    section: 's6',
+    level: 'BLOCKING',
+    overridable: true,
+    evaluate: ({ calc }) => {
+      const before = calc.targets.breakEvenRoas;
+      const after = calc.offer?.targets.breakEvenRoas ?? null;
+      return isNum(before) && isNum(after) && before <= 6 && after > 6
+        ? { meta: { before, after } }
+        : null;
+    },
+  },
+];
+
+const s7Gates: GateDefinition[] = [
+  {
+    id: 'G-S7-AWARENESS-CONCENTRATION',
+    section: 's7',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: ({ brief }) =>
+      brief.s7.awarenessLevel === 'PRODUCT_AWARE' ||
+      brief.s7.awarenessLevel === 'MOST_AWARE'
+        ? {}
+        : null,
+  },
+];
+
+const s8Gates: GateDefinition[] = [
+  {
+    id: 'G-S8-CONCEPT-CONCENTRATION',
+    section: 's8',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: ({ brief }) => {
+      if (brief.s8.assets.length === 0) return null;
+      const concepts = new Set(
+        brief.s8.assets.map((asset) => asset.conceptId.trim()).filter(Boolean),
+      );
+      return concepts.size > 0 && concepts.size < 3
+        ? { meta: { concepts: concepts.size } }
+        : null;
+    },
+  },
+];
+
+const s9Gates: GateDefinition[] = [
+  {
+    id: 'G-S9-HOOK-ATTRIBUTES',
+    section: 's9',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: ({ brief }) => {
+      const hits = lintHooks(brief.s7.hookVariants);
+      return hits.length > 0
+        ? {
+            meta: {
+              count: hits.length,
+              examples: hits
+                .slice(0, 2)
+                .map((hit) => `"${hit.text.slice(0, 60)}" (${hit.keywords.join(', ')})`)
+                .join(' · '),
+            },
+          }
+        : null;
+    },
+  },
+  {
+    id: 'G-S9-SPECIAL-CATEGORY',
+    section: 's9',
+    level: 'INFO',
+    overridable: true,
+    evaluate: ({ brief }) =>
+      brief.s9.specialAdCategory && brief.s9.specialAdCategory !== 'NONE'
+        ? { meta: { category: brief.s9.specialAdCategory } }
+        : null,
+  },
+];
+
+const s10Gates: GateDefinition[] = [
+  {
+    id: 'G-S10-REQUIRED-INCOMPLETE',
+    section: 's10',
+    level: 'BLOCKING',
+    overridable: true,
+    evaluate: ({ brief, calc }) => {
+      if (!calc.experimentRequired) return null;
+      const s10 = brief.s10;
+      const incomplete =
+        !s10.estimand.trim() ||
+        !s10.design ||
+        s10.power.baselineRatePct === null ||
+        !s10.stoppingRule ||
+        !s10.decisionRule.trim();
+      return incomplete
+        ? {
+            meta: {
+              reason:
+                brief.s0.campaignIntent === 'AWARENESS'
+                  ? 'awareness spend is unmeasurable without a lift plan'
+                  : 'LEARNING purpose requires a pre-registered experiment',
+            },
+          }
+        : null;
+    },
+  },
+  {
+    id: 'G-S10-DAYS-GT45',
+    section: 's10',
+    level: 'BLOCKING',
+    overridable: true,
+    evaluate: ({ calc }) =>
+      isNum(calc.experiment?.estDaysToComplete ?? null) &&
+      (calc.experiment?.estDaysToComplete as number) > 45
+        ? { meta: { days: calc.experiment!.estDaysToComplete as number } }
+        : null,
+  },
+  {
+    id: 'G-S10-OBSERVATIONAL',
+    section: 's10',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: ({ brief }) =>
+      brief.s10.design === 'OBSERVATIONAL' ? {} : null,
+  },
+];
+
+const s11Gates: GateDefinition[] = [
+  {
+    id: 'G-S11-CHECKOUT-UNTESTED',
+    section: 's11',
+    level: 'BLOCKING',
+    overridable: true,
+    evaluate: ({ brief }) =>
+      brief.s11.checkoutTested.tested === false ? {} : null,
+  },
+  {
+    id: 'G-S11-LCP-SLOW',
+    section: 's11',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: ({ brief }) =>
+      isNum(brief.s11.lcpSecondsMobile) && brief.s11.lcpSecondsMobile > 2.5
+        ? { meta: { lcp: brief.s11.lcpSecondsMobile } }
+        : null,
+  },
+  {
+    id: 'G-S11-P90-RESPONSE',
+    section: 's11',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: ({ brief, calc }) =>
+      calc.build === 'leadGen' &&
+      isNum(brief.s11.intake.p90FirstResponseMinutes) &&
+      brief.s11.intake.p90FirstResponseMinutes > 1440
+        ? { meta: { p90h: Math.round(brief.s11.intake.p90FirstResponseMinutes / 60) } }
+        : null,
+  },
+  {
+    id: 'G-S11-CAPACITY',
+    section: 's11',
+    level: 'BLOCKING',
+    overridable: true,
+    evaluate: ({ brief, calc }) =>
+      calc.build === 'leadGen' &&
+      isNum(brief.s11.intake.capacityUtilizationPct) &&
+      brief.s11.intake.capacityUtilizationPct > 95
+        ? { meta: { utilization: brief.s11.intake.capacityUtilizationPct } }
+        : null,
+  },
+];
+
+const s12Gates: GateDefinition[] = [
+  {
+    id: 'G-S12-PLATFORM-ROAS-PRIMARY',
+    section: 's12',
+    level: 'WARNING',
+    overridable: true,
+    evaluate: ({ brief }) =>
+      brief.s12.primaryMetric === 'PLATFORM_ROAS' ? {} : null,
+  },
+];
+
 export const GATE_DEFINITIONS: GateDefinition[] = [
   ...s0Gates,
   ...s1Gates,
   ...s2Gates,
   ...s3Gates,
   ...s4Gates,
+  ...s5Gates,
+  ...s6Gates,
+  ...s7Gates,
+  ...s8Gates,
+  ...s9Gates,
+  ...s10Gates,
+  ...s11Gates,
+  ...s12Gates,
 ];

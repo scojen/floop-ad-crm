@@ -499,6 +499,111 @@ export function CurrencyOrPercentField({
   );
 }
 
+/** Multi-select over a fixed enum — stored as an array of enum values. */
+export function MultiCheckField({
+  name,
+  label,
+  options,
+  help,
+  info,
+}: {
+  name: Name;
+  label: string;
+  help?: string;
+  options: { value: string; label: string }[];
+  info?: FieldInfo;
+}) {
+  const { control } = useFormContext<BriefFormValues>();
+  const { field, fieldState } = useController({ control, name });
+  const selected = (field.value as string[] | undefined) ?? [];
+  const toggle = (value: string) =>
+    field.onChange(
+      selected.includes(value)
+        ? selected.filter((entry) => entry !== value)
+        : [...selected, value],
+    );
+  return (
+    <FieldShell label={label} help={help} error={fieldState.error?.message} wide info={info}>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => toggle(option.value)}
+            className={`rounded-full border px-2.5 py-1 text-xs ${
+              selected.includes(option.value)
+                ? 'border-neutral-700 bg-neutral-800 font-medium text-white'
+                : 'border-neutral-200 text-neutral-500 hover:border-neutral-400'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </FieldShell>
+  );
+}
+
+/** Free-text chips — stored as string[]. Enter or blur commits a chip. */
+export function ChipListField({
+  name,
+  label,
+  help,
+  placeholder,
+  info,
+}: {
+  name: Name;
+  label: string;
+  help?: string;
+  placeholder?: string;
+  info?: FieldInfo;
+}) {
+  const { control } = useFormContext<BriefFormValues>();
+  const { field, fieldState } = useController({ control, name });
+  const [draft, setDraft] = useState('');
+  const chips = (field.value as string[] | undefined) ?? [];
+  const commit = () => {
+    const value = draft.trim();
+    if (value && !chips.includes(value)) field.onChange([...chips, value]);
+    setDraft('');
+  };
+  return (
+    <FieldShell label={label} help={help} error={fieldState.error?.message} wide info={info}>
+      <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2 py-1.5">
+        {chips.map((chip) => (
+          <span
+            key={chip}
+            className="flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700"
+          >
+            {chip}
+            <button
+              type="button"
+              className="text-neutral-400 hover:text-red-600"
+              onClick={() => field.onChange(chips.filter((entry) => entry !== chip))}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          className="min-w-28 flex-1 text-sm outline-none"
+          placeholder={placeholder ?? 'Type and press Enter'}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              commit();
+            }
+          }}
+        />
+      </div>
+    </FieldShell>
+  );
+}
+
 export function SectionCard({
   id,
   number,

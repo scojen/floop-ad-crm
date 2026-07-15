@@ -5,7 +5,13 @@ import {
   VERTICALS,
 } from '../../../lib/schema/sections/s0-client';
 import { FIELD_INFO } from '../../../lib/planning-copy';
-import { DateField, SectionCard, SelectField, TextField } from '../fields';
+import {
+  DateField,
+  RadioGroupField,
+  SectionCard,
+  SelectField,
+  TextField,
+} from '../fields';
 
 export function Section0() {
   return (
@@ -31,6 +37,25 @@ export function Section0() {
           value,
           label: BUSINESS_MODEL_LABELS[value],
         }))}
+      />
+      <RadioGroupField
+        name="s0.campaignIntent"
+        label="What is this campaign for?"
+        help="This fork decides what the rest of the form asks. Direct response is judged on unit economics; awareness is an investment with a lift-measurement obligation."
+        options={[
+          {
+            value: 'DIRECT_RESPONSE',
+            label: 'Direct response — sales or leads, now',
+            description:
+              'Judged on contribution per order/lead. Section 1 builds the unit economics and the ROAS/CAC gates apply.',
+          },
+          {
+            value: 'AWARENESS',
+            label: 'Awareness / brand — future demand',
+            description:
+              'No ROAS math — instead: a budget, a spend guardrail, a written future-value hypothesis, and a mandatory lift measurement plan (Section 10).',
+          },
+        ]}
       />
       <DateField name="s0.engagementStart" label="Engagement start" />
       <TextField name="s0.mediaLead" label="Media lead" />

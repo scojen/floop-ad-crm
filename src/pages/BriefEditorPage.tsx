@@ -15,6 +15,15 @@ import { Section1 } from '../components/planning/sections/Section1';
 import { Section2 } from '../components/planning/sections/Section2';
 import { Section3 } from '../components/planning/sections/Section3';
 import { Section4 } from '../components/planning/sections/Section4';
+import { Section5 } from '../components/planning/sections/Section5';
+import { Section6 } from '../components/planning/sections/Section6';
+import { Section7 } from '../components/planning/sections/Section7';
+import { Section8 } from '../components/planning/sections/Section8';
+import { Section9 } from '../components/planning/sections/Section9';
+import { Section10 } from '../components/planning/sections/Section10';
+import { Section11 } from '../components/planning/sections/Section11';
+import { Section12 } from '../components/planning/sections/Section12';
+import { Section13 } from '../components/planning/sections/Section13';
 import { AutosaveLabel } from '../components/planning/AutosaveLabel';
 import { useBriefAutosave } from '../hooks/useBriefAutosave';
 import { canSubmit, pruneStale } from '../lib/gates/evaluate';
@@ -191,6 +200,15 @@ function Editor({ brief }: { brief: Brief }) {
                 <Section2 calc={derivationRef.current?.calc ?? null} />
                 <Section3 calc={derivationRef.current?.calc ?? null} />
                 <Section4 calc={derivationRef.current?.calc ?? null} />
+                <Section5 />
+                <Section6 />
+                <Section7 />
+                <Section8 />
+                <Section9 />
+                <Section10 />
+                <Section11 />
+                <Section12 />
+                <Section13 />
               </div>
             </LockedOverlay>
           </div>

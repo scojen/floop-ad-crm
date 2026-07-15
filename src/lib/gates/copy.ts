@@ -66,11 +66,95 @@ export const GATE_COPY: Record<string, GateCopy> = {
     body: () =>
       '"What would change our mind, and when will we decide?" is empty. Without a pre-committed decision standard, every result becomes an argument. This is the pre-registration — write it down.',
   },
-  'G-S2-LEARNING-NO-TESTLOG': {
-    title: 'LEARNING campaign without an experiment definition',
-    playbookRef: 'ch. 7',
+  'G-S1-AW-NO-GUARDRAIL': {
+    title: 'Awareness budget without a spend guardrail',
+    playbookRef: '§1.5',
     body: () =>
-      'You chose LEARNING: this campaign exists to produce a clean read. The experiment designer (estimand, power, stopping rule) ships in the next slice — override with justification to proceed without one, knowing the read will not be pre-registered.',
+      'Awareness effects are cumulative and delayed — which is exactly why the spend needs a pre-agreed cap (% of revenue or currency). Without one, "give it more time" becomes an unbounded budget.',
+  },
+  'G-S5-NO-PURCHASER-EXCLUSION': {
+    title: 'Prospecting without a customer exclusion',
+    playbookRef: '§3.5',
+    body: () =>
+      'A prospecting ad set with no purchaser/customer exclusion will pay to advertise to people who already bought.',
+  },
+  'G-S6-OFFER-BREAKS-ECONOMICS': {
+    title: 'This offer breaks the §1 economics',
+    playbookRef: '§1.4',
+    body: (m) =>
+      `This offer changes your economics: break-even ROAS moves from ${n(m, 'before')}x to ${n(m, 'after')}x — past the 6x line the §1 gate holds. The promotion is paying for itself with margin you don't have.`,
+  },
+  'G-S7-AWARENESS-CONCENTRATION': {
+    title: 'Mining the already-aware',
+    playbookRef: 'ch. 8',
+    body: () =>
+      'This creative targets Product/Most-aware buyers — the population that already knows you exist. That population is small, and it is where ceilings come from. Keep unaware/problem-aware concepts in the mix.',
+  },
+  'G-S8-CONCEPT-CONCENTRATION': {
+    title: 'Angle concentration',
+    playbookRef: 'ch. 8',
+    body: (m) =>
+      `Only ${n(m, 'concepts')} distinct creative concept(s) live. Angle concentration is a single point of failure: when the angle dies, every creative built on it dies together. Keep 3+ distinct concepts live.`,
+  },
+  'G-S9-HOOK-ATTRIBUTES': {
+    title: 'Hooks flagged for personal-attributes review',
+    playbookRef: 'ch. 12',
+    body: (m) =>
+      `${n(m, 'count')} hook(s) combine second-person phrasing with sensitive-attribute keywords — e.g. ${n(m, 'examples')}. This is a heuristic aid, not a compliance determination: the rule is contextual, not a keyword ban. A human must review each flagged hook.`,
+  },
+  'G-S9-SPECIAL-CATEGORY': {
+    title: 'Special Ad Category restrictions apply',
+    playbookRef: 'ch. 12',
+    body: (m) =>
+      `${n(m, 'category')} campaigns lose age, gender, and radius targeting, and audience options are restricted. Section 5's demographic fields are disabled accordingly.`,
+  },
+  'G-S10-REQUIRED-INCOMPLETE': {
+    title: 'Experiment plan required but incomplete',
+    playbookRef: 'ch. 7',
+    body: (m) =>
+      `An experiment plan (estimand, design, power, stopping rule, decision rule) is mandatory here: ${n(m, 'reason')}. An experiment is a design with a pre-committed decision — not two rows in a dashboard.`,
+  },
+  'G-S10-DAYS-GT45': {
+    title: 'This test cannot finish in a reasonable window',
+    playbookRef: '§7.3',
+    body: (m) =>
+      `Estimated ${n(m, 'days')} days to complete at this budget. A smaller expected effect requires MORE sample, not less. Either raise the MDE — test something bigger (offer, angle, awareness level), not a button color — or accept this is a ship-and-monitor decision, not a test.`,
+  },
+  'G-S10-OBSERVATIONAL': {
+    title: 'Observational is not a test',
+    playbookRef: '§7.2',
+    body: () =>
+      'Duplicating ad sets is not an experiment: auction overlap and delivery skew will manufacture a winner from noise. Use Meta A/B Test, a geo holdout, or Conversion Lift for a causal read.',
+  },
+  'G-S11-CHECKOUT-UNTESTED': {
+    title: 'Checkout / form not tested end-to-end',
+    playbookRef: 'ch. 9',
+    body: () =>
+      'You are about to pay for traffic into a flow nobody has verified works. Test the checkout/form end-to-end before spending.',
+  },
+  'G-S11-LCP-SLOW': {
+    title: 'Landing page is slow on mobile',
+    playbookRef: 'ch. 9',
+    body: (m) =>
+      `Mobile LCP is ${n(m, 'lcp')}s — above the 2.5s good-experience threshold. Every 100ms is paid traffic bouncing before the page exists.`,
+  },
+  'G-S11-P90-RESPONSE': {
+    title: 'Slow lead response tail',
+    playbookRef: 'ch. 10',
+    body: (m) =>
+      `90th-percentile first response is ~${n(m, 'p90h')} hours. Speed-to-lead is the #1 conversion lever — a day-old lead is nearly dead.`,
+  },
+  'G-S11-CAPACITY': {
+    title: 'Intake is already at capacity',
+    playbookRef: 'ch. 10',
+    body: (m) =>
+      `Capacity utilization is ${n(m, 'utilization')}%. You are about to buy leads the team cannot serve — that money converts to response-time decay, not revenue.`,
+  },
+  'G-S12-PLATFORM-ROAS-PRIMARY': {
+    title: 'Platform ROAS as the primary metric',
+    playbookRef: '§2.6',
+    body: () =>
+      "Platform-attributed ROAS is Meta grading its own homework — fine as a labeled secondary signal, wrong as the primary scoreboard. Lead with contribution after media or new-customer metrics from backend data.",
   },
   'G-S3-PIXEL-FAIL': {
     title: 'Pixel not verified',

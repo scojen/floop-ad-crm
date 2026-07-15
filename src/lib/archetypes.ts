@@ -25,6 +25,7 @@ export const ARCHETYPES: Archetype[] = [
       const brief = emptyBrief();
       brief.s0 = {
         ...brief.s0,
+        campaignIntent: 'DIRECT_RESPONSE',
         clientName: 'Vellum',
         vertical: 'DTC_ECOM',
         businessModel: 'REPEAT',
@@ -55,6 +56,7 @@ export const ARCHETYPES: Archetype[] = [
       const brief = emptyBrief();
       brief.s0 = {
         ...brief.s0,
+        campaignIntent: 'DIRECT_RESPONSE',
         clientName: 'Kettle & Co',
         vertical: 'DTC_ECOM',
         businessModel: 'ONE_TIME',
@@ -85,6 +87,7 @@ export const ARCHETYPES: Archetype[] = [
       const brief = emptyBrief();
       brief.s0 = {
         ...brief.s0,
+        campaignIntent: 'DIRECT_RESPONSE',
         clientName: 'Axiom Coffee',
         vertical: 'SUBSCRIPTION',
         businessModel: 'SUBSCRIPTION',
@@ -121,6 +124,7 @@ export const ARCHETYPES: Archetype[] = [
       const brief = emptyBrief();
       brief.s0 = {
         ...brief.s0,
+        campaignIntent: 'DIRECT_RESPONSE',
         clientName: 'Northridge Dental',
         vertical: 'LEADGEN_LOCAL',
         businessModel: 'HIGH_TICKET',
@@ -146,6 +150,7 @@ export const ARCHETYPES: Archetype[] = [
       const brief = emptyBrief();
       brief.s0 = {
         ...brief.s0,
+        campaignIntent: 'DIRECT_RESPONSE',
         clientName: 'Harbor Legal',
         vertical: 'LEADGEN_PROFESSIONAL',
         businessModel: 'HIGH_TICKET',
@@ -171,6 +176,7 @@ export const ARCHETYPES: Archetype[] = [
       const brief = emptyBrief();
       brief.s0 = {
         ...brief.s0,
+        campaignIntent: 'DIRECT_RESPONSE',
         clientName: 'Stackflow',
         vertical: 'B2B_SAAS',
         businessModel: 'SUBSCRIPTION',

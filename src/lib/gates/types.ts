@@ -2,11 +2,13 @@ import type { DerivedCalcs } from '../calc/derive';
 import type { BriefFormValues } from '../schema/campaign-brief';
 
 /** Bump when gate logic changes — stamped into every stored snapshot. */
-export const GATE_ENGINE_VERSION = 'gates-v1';
+export const GATE_ENGINE_VERSION = 'gates-v2';
 
 export type GateLevel = 'BLOCKING' | 'WARNING' | 'INFO';
 
-export type SectionId = 's0' | 's1' | 's2' | 's3' | 's4';
+export type SectionId =
+  | 's0' | 's1' | 's2' | 's3' | 's4' | 's5' | 's6' | 's7'
+  | 's8' | 's9' | 's10' | 's11' | 's12' | 's13';
 
 export interface GateContext {
   brief: BriefFormValues;

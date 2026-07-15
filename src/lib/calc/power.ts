@@ -74,6 +74,85 @@ export function requiredSampleSize(input: PowerInput): PowerResult | null {
   return { nA, nB, total: nA + nB, variantRate: p2 };
 }
 
+export interface ExperimentPlanInput {
+  baselineRatePct: number | null;
+  mdeRelativePct: number | null;
+  alphaPct: number | null;
+  powerPct: number | null;
+  allocationPctA: number | null;
+  /** Cost per optimization event — prices the sample (§7.3). */
+  targetCpa: number | null;
+  dailyTestBudget: number | null;
+}
+
+export interface ExperimentPlanResult {
+  nPerArm: number;
+  nTotal: number;
+  conversionsPerArmA: number;
+  /** Null when no CPA is available (e.g. awareness lift tests). */
+  estCostTotal: number | null;
+  estDaysToComplete: number | null;
+}
+
+/** S10's live block: required n → conversions → cost → days at test budget. */
+export function computeExperimentPlan(
+  input: ExperimentPlanInput,
+): ExperimentPlanResult | null {
+  if (input.baselineRatePct === null || input.mdeRelativePct === null) {
+    return null;
+  }
+  const sample = requiredSampleSize({
+    baselineRate: input.baselineRatePct / 100,
+    mde: input.mdeRelativePct / 100,
+    mdeMode: 'relative',
+    alpha: (input.alphaPct ?? 5) / 100,
+    power: (input.powerPct ?? 80) / 100,
+    allocation: (input.allocationPctA ?? 50) / 100,
+  });
+  if (!sample) return null;
+
+  const p1 = input.baselineRatePct / 100;
+  const conversionsPerArmA = Math.ceil(sample.nA * p1);
+  const conversionsB = Math.ceil(sample.nB * sample.variantRate);
+
+  let estCostTotal: number | null = null;
+  let estDaysToComplete: number | null = null;
+  if (input.targetCpa !== null && input.targetCpa > 0) {
+    estCostTotal = Math.round((conversionsPerArmA + conversionsB) * input.targetCpa);
+    if (input.dailyTestBudget !== null && input.dailyTestBudget > 0) {
+      estDaysToComplete = Math.ceil(estCostTotal / input.dailyTestBudget);
+    }
+  }
+  return {
+    nPerArm: sample.nA,
+    nTotal: sample.total,
+    conversionsPerArmA,
+    estCostTotal,
+    estDaysToComplete,
+  };
+}
+
+/** The "test big things" sensitivity table: days-to-complete across MDEs. */
+export function mdeSensitivity(
+  input: ExperimentPlanInput,
+  mdes: number[] = [5, 10, 20, 30, 50],
+): {
+  mdePct: number;
+  nPerArm: number | null;
+  estCost: number | null;
+  estDays: number | null;
+}[] {
+  return mdes.map((mdePct) => {
+    const plan = computeExperimentPlan({ ...input, mdeRelativePct: mdePct });
+    return {
+      mdePct,
+      nPerArm: plan?.nPerArm ?? null,
+      estCost: plan?.estCostTotal ?? null,
+      estDays: plan?.estDaysToComplete ?? null,
+    };
+  });
+}
+
 /**
  * Inverse standard-normal CDF (quantile). Acklam's rational approximation,
  * |relative error| < 1.15e-9 — precise enough for any alpha/power the form

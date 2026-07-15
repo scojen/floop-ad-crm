@@ -55,10 +55,20 @@ export function requiredBuildFor(
   }
 }
 
+/**
+ * The intent fork: business objective comes before the platform objective
+ * (SOSTAC ordering). Direct response is gated on unit economics; awareness
+ * swaps §1 for an investment rationale and REQUIRES a lift measurement
+ * plan — different evidence standard, same accountability.
+ */
+export const CAMPAIGN_INTENTS = ['DIRECT_RESPONSE', 'AWARENESS'] as const;
+export type CampaignIntent = (typeof CAMPAIGN_INTENTS)[number];
+
 export const s0Schema = z.object({
   clientName: z.string(),
   vertical: z.enum(VERTICALS).nullable(),
   businessModel: z.enum(BUSINESS_MODELS).nullable(),
+  campaignIntent: z.enum(CAMPAIGN_INTENTS).nullable(),
   engagementStart: isoDate,
   mediaLead: z.string(),
   creativeLead: z.string(),
@@ -70,6 +80,7 @@ export const emptyS0 = (): S0Values => ({
   clientName: '',
   vertical: null,
   businessModel: null,
+  campaignIntent: null,
   engagementStart: null,
   mediaLead: '',
   creativeLead: '',

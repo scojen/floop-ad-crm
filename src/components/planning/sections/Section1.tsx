@@ -22,7 +22,44 @@ export function Section1({ calc }: { calc: DerivedCalcs | null }) {
   const { control } = useFormContext<BriefFormValues>();
   const vertical = useWatch({ control, name: 's0.vertical' });
   const businessModel = useWatch({ control, name: 's0.businessModel' });
+  const intent = useWatch({ control, name: 's0.campaignIntent' });
   const build = requiredBuildFor(vertical);
+
+  if (intent === 'AWARENESS') {
+    return (
+      <SectionCard
+        id="s1"
+        number="1"
+        title="Investment Rationale"
+        subtitle="Awareness is still an economic bet — it just has a different evidence standard. Budget, guardrail, and a written hypothesis are mandatory. §1.5"
+        badge={
+          <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+            AWARENESS TRACK
+          </span>
+        }
+      >
+        <NumberField
+          name="s1.awareness.plannedMonthlyBudget"
+          label="Planned monthly budget"
+          prefix="$"
+        />
+        <SpendGuardrailField />
+        <NumberField
+          name="s1.awareness.horizonMonths"
+          label="Evaluation horizon"
+          suffix="mo"
+          help="When do we sit down and judge whether this worked?"
+        />
+        <TextAreaField
+          name="s1.awareness.futureValueHypothesis"
+          label="Future-value hypothesis"
+          rows={3}
+          placeholder='e.g. "Grow branded search volume 20% within 2 quarters, lowering blended CAC below $X."'
+          help="What future behavior does this spend buy, and how will we see it? This sentence is the campaign's entire justification."
+        />
+      </SectionCard>
+    );
+  }
 
   return (
     <SectionCard
@@ -248,6 +285,49 @@ function LtvBlock() {
         minChars={undefined}
       />
     </>
+  );
+}
+
+function SpendGuardrailField() {
+  const { control } = useFormContext<BriefFormValues>();
+  const mode = useController({ control, name: 's1.awareness.spendGuardrail.mode' });
+  const value = useController({ control, name: 's1.awareness.spendGuardrail.value' });
+  return (
+    <div>
+      <span className="mb-1 block text-xs font-medium text-neutral-600">
+        Spend guardrail (cap)
+      </span>
+      <div className="flex">
+        <input
+          type="number"
+          inputMode="decimal"
+          step="any"
+          className={`${inputClass} rounded-r-none`}
+          value={value.field.value ?? ''}
+          onChange={(event) =>
+            value.field.onChange(
+              event.target.value === '' ? null : Number(event.target.value),
+            )
+          }
+        />
+        <button
+          type="button"
+          onClick={() =>
+            mode.field.onChange(
+              mode.field.value === 'pctOfRevenue' ? 'currency' : 'pctOfRevenue',
+            )
+          }
+          className="whitespace-nowrap rounded-r-md border border-l-0 border-neutral-200 bg-neutral-50 px-3 text-xs text-neutral-600"
+          title="Toggle % of revenue / currency"
+        >
+          {mode.field.value === 'pctOfRevenue' ? '% of revenue' : '$ / mo'}
+        </button>
+      </div>
+      <span className="mt-1 block text-[11px] text-neutral-400">
+        Awareness effects are cumulative and delayed — the cap is what keeps
+        &ldquo;give it more time&rdquo; from becoming unbounded.
+      </span>
+    </div>
   );
 }
 

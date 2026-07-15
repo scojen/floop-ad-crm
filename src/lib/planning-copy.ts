@@ -180,6 +180,24 @@ export const FIELD_INFO: Record<string, FieldInfo> = {
       "Meta's exploration period after launch or big edits. Ad sets unlikely to reach ~50 optimization events in a week stay delivery-unstable — data from them looks usable but isn't.",
     ref: '§3.3',
   },
+  estimand: {
+    term: 'Estimand',
+    plain:
+      'The precise thing the test measures: for whom, treatment vs what, which outcome, over what window. If two people would fill those blanks differently, the test is not designed yet.',
+    ref: '§7.1',
+  },
+  baselineRate: {
+    term: 'Baseline conversion rate',
+    plain:
+      'The rate the control arm converts at today. The sample-size math is anchored to it — a 2% baseline needs far more traffic than a 10% one to detect the same relative lift.',
+    ref: '§7.3',
+  },
+  mde: {
+    term: 'Minimum detectable effect (MDE)',
+    plain:
+      'The smallest lift you insist on being able to see. Counter-intuitively, a SMALLER expected effect needs MORE sample — which is why the playbook says test big things (offers, angles), not button colors.',
+    ref: '§7.3',
+  },
   preRegistration: {
     term: 'Pre-registration',
     plain:

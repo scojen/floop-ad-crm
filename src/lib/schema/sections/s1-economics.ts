@@ -69,9 +69,28 @@ export const ltvSchema = z.object({
   cashBufferNote: z.string(),
 });
 
+/**
+ * Awareness-intent replacement for the contribution build: an investment
+ * rationale. No ROAS/CAC math applies — but budget, guardrail, and a
+ * written future-value hypothesis are still mandatory (§1.5: brand and
+ * performance are one system; awareness is an economic bet with a
+ * different evidence standard).
+ */
+export const awarenessRationaleSchema = z.object({
+  plannedMonthlyBudget: moneyValue,
+  /** Cap as % of revenue or absolute currency — the spend guardrail. */
+  spendGuardrail: z.object({
+    mode: z.enum(['pctOfRevenue', 'currency']),
+    value: nullableNumber,
+  }),
+  futureValueHypothesis: z.string(),
+  horizonMonths: nullableNumber,
+});
+
 export const s1Schema = z.object({
   ecom: ecomBuildSchema,
   leadGen: leadGenBuildSchema,
+  awareness: awarenessRationaleSchema,
   targets: targetsSchema,
   ltv: ltvSchema,
 });
@@ -95,6 +114,12 @@ export const emptyS1 = (): S1Values => ({
     pQualGivenLeadPct: null,
     pApptGivenQualPct: null,
     pCloseGivenApptPct: null,
+  },
+  awareness: {
+    plannedMonthlyBudget: null,
+    spendGuardrail: { mode: 'pctOfRevenue', value: null },
+    futureValueHypothesis: '',
+    horizonMonths: null,
   },
   targets: {
     requiredContributionAfterAds: null,

@@ -100,6 +100,22 @@ function SidebarPanel({
   readOnly?: boolean;
 }) {
   const { calc, gates } = derivation;
+
+  if (calc.intent === 'AWARENESS') {
+    return (
+      <div className="divide-y divide-neutral-100 text-sm">
+        <SidebarGroup title="Investment (awareness track)">
+          <p className="mb-1.5 text-[10px] leading-snug text-neutral-400">
+            No ROAS math on this track — the scoreboard is the lift plan in
+            Section 10 and the §1.5 guardrail.
+          </p>
+        </SidebarGroup>
+        <ExperimentGroup calc={calc} />
+        <GatesGroup gates={gates} readOnly={readOnly} />
+      </div>
+    );
+  }
+
   return (
     <div className="divide-y divide-neutral-100 text-sm">
       <SidebarGroup title="Economics">
@@ -157,6 +173,14 @@ function SidebarPanel({
           value={money(calc.ltv.peakCashOutstanding)}
           sentence={METRIC_SENTENCES.peakCash(calc)}
         />
+        {calc.offer && (
+          <Row
+            label="With offer → break-even"
+            value={x(calc.offer.targets.breakEvenRoas)}
+            strong
+            sentence="The Section 6 offer applied to the same economics — the number the §1 gates judge while the promotion runs."
+          />
+        )}
       </SidebarGroup>
 
       <SidebarGroup title="Feasibility">
@@ -180,21 +204,60 @@ function SidebarPanel({
         />
       </SidebarGroup>
 
-      <SidebarGroup
-        title={`Gates — 🔴 ${gates.filter((g) => g.level === 'BLOCKING').length} · 🟡 ${gates.filter((g) => g.level === 'WARNING').length} · 🔵 ${gates.filter((g) => g.level === 'INFO').length}`}
-      >
-        {gates.length === 0 && (
-          <p className="px-1 py-2 text-xs text-neutral-400">
-            No gates triggered. The form has no objection — yet.
-          </p>
-        )}
-        <div className="space-y-2">
-          {gates.map((gate) => (
-            <GateRow key={gate.id} gate={gate} readOnly={readOnly} />
-          ))}
-        </div>
-      </SidebarGroup>
+      <ExperimentGroup calc={calc} />
+      <GatesGroup gates={gates} readOnly={readOnly} />
     </div>
+  );
+}
+
+function ExperimentGroup({ calc }: { calc: Derivation['calc'] }) {
+  if (!calc.experimentRequired && !calc.experiment) return null;
+  return (
+    <SidebarGroup
+      title={`Experiment${calc.experimentRequired ? ' — required' : ''}`}
+    >
+      <Row label="n per arm" value={calc.experiment?.nPerArm ?? '—'} />
+      <Row
+        label="Est. cost"
+        value={money(calc.experiment?.estCostTotal ?? null)}
+      />
+      <Row
+        label="Days to complete"
+        value={calc.experiment?.estDaysToComplete ?? '—'}
+        strong
+        sentence={
+          calc.experiment?.estDaysToComplete != null &&
+          calc.experiment.estDaysToComplete > 45
+            ? 'Over 45 days — raise the MDE (test something bigger) or accept this is not a test. §7.3'
+            : null
+        }
+      />
+    </SidebarGroup>
+  );
+}
+
+function GatesGroup({
+  gates,
+  readOnly,
+}: {
+  gates: Derivation['gates'];
+  readOnly?: boolean;
+}) {
+  return (
+    <SidebarGroup
+      title={`Gates — 🔴 ${gates.filter((g) => g.level === 'BLOCKING').length} · 🟡 ${gates.filter((g) => g.level === 'WARNING').length} · 🔵 ${gates.filter((g) => g.level === 'INFO').length}`}
+    >
+      {gates.length === 0 && (
+        <p className="px-1 py-2 text-xs text-neutral-400">
+          No gates triggered. The form has no objection — yet.
+        </p>
+      )}
+      <div className="space-y-2">
+        {gates.map((gate) => (
+          <GateRow key={gate.id} gate={gate} readOnly={readOnly} />
+        ))}
+      </div>
+    </SidebarGroup>
   );
 }
 

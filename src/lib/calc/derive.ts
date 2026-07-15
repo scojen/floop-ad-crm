@@ -3,9 +3,13 @@
  * sidebar, gates, autosave snapshot, and markdown brief consume.
  * Pure TS — safe to call on every keystroke.
  */
-import type { BriefFormValues } from '../schema/campaign-brief';
-import { requiredBuildFor } from '../schema/sections/s0-client';
 import {
+  experimentRequired,
+  type BriefFormValues,
+} from '../schema/campaign-brief';
+import { requiredBuildFor, type CampaignIntent } from '../schema/sections/s0-client';
+import {
+  applyOfferImpact,
   applyWhatIf,
   computeAllowableCpl,
   computeCashRequirement,
@@ -19,6 +23,10 @@ import {
   type TargetsResult,
 } from './economics';
 import {
+  computeExperimentPlan,
+  type ExperimentPlanResult,
+} from './power';
+import {
   maxSupportableAdSets,
   minDailyBudgetPerAdSet,
   projectedWeeklyEvents,
@@ -27,6 +35,7 @@ import { isNum, round2, safeDiv } from './round';
 
 export interface DerivedCalcs {
   build: 'ecom' | 'leadGen';
+  intent: CampaignIntent | null;
   contribution: ContributionResult;
   evPerRawLead: number | null;
   allowableCpl: number | null;
@@ -48,7 +57,12 @@ export interface DerivedCalcs {
   };
   receiptRatio: number | null;
   whatIf: { contribution: ContributionResult; targets: TargetsResult } | null;
-  /** Unlock predicate for S2–S4 ("nothing else unlocks until §1 validates"). */
+  /** S6 offer applied to the §1 economics — the before/after. */
+  offer: { contribution: ContributionResult; targets: TargetsResult } | null;
+  /** S10 live power block. */
+  experiment: ExperimentPlanResult | null;
+  experimentRequired: boolean;
+  /** Unlock predicate for S2+ ("nothing else unlocks until §1 validates"). */
   economicsValid: boolean;
 }
 
@@ -127,6 +141,34 @@ export function deriveCalcs(brief: BriefFormValues): DerivedCalcs {
         })()
       : null;
 
+  const awareness = brief.s0.campaignIntent === 'AWARENESS';
+
+  const offer =
+    !awareness &&
+    build === 'ecom' &&
+    brief.s6.offerType !== null &&
+    brief.s6.offerType !== 'NONE'
+      ? applyOfferImpact(
+          brief.s1.ecom,
+          {
+            discount: brief.s6.discount,
+            giftCostPerOrder: brief.s6.giftCostPerOrder,
+            expectedAovImpact: brief.s6.expectedAovImpact,
+          },
+          required,
+        )
+      : null;
+
+  const experiment = computeExperimentPlan({
+    baselineRatePct: brief.s10.power.baselineRatePct,
+    mdeRelativePct: brief.s10.power.mdeRelativePct,
+    alphaPct: brief.s10.power.alphaPct,
+    powerPct: brief.s10.power.powerPct,
+    allocationPctA: brief.s10.power.allocationPctA,
+    targetCpa: brief.s4.targetCpa,
+    dailyTestBudget: brief.s10.dailyTestBudget,
+  });
+
   const buildComplete =
     build === 'ecom'
       ? contribution.contribution !== null
@@ -136,11 +178,15 @@ export function deriveCalcs(brief: BriefFormValues): DerivedCalcs {
     (isNum(brief.s1.ltv.contributionPerMonth) &&
       isNum(brief.s1.ltv.retention.value) &&
       isNum(brief.s1.ltv.plannedMonthlySpend));
-  const economicsValid =
-    buildComplete && isNum(required) && targets.allowableCac !== null && ltvComplete;
+  const economicsValid = awareness
+    ? // Awareness: the investment rationale replaces the contribution math.
+      isNum(brief.s1.awareness.plannedMonthlyBudget) &&
+      brief.s1.awareness.futureValueHypothesis.trim().length > 0
+    : buildComplete && isNum(required) && targets.allowableCac !== null && ltvComplete;
 
   return {
     build,
+    intent: brief.s0.campaignIntent,
     contribution,
     evPerRawLead,
     allowableCpl,
@@ -155,6 +201,9 @@ export function deriveCalcs(brief: BriefFormValues): DerivedCalcs {
     learning,
     receiptRatio: receiptRatioRaw === null ? null : round2(receiptRatioRaw),
     whatIf,
+    offer,
+    experiment,
+    experimentRequired: experimentRequired(brief),
     economicsValid,
   };
 }
