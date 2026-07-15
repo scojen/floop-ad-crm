@@ -4,6 +4,7 @@ import {
   VERTICAL_LABELS,
   VERTICALS,
 } from '../../../lib/schema/sections/s0-client';
+import { FIELD_INFO } from '../../../lib/planning-copy';
 import { DateField, SectionCard, SelectField, TextField } from '../fields';
 
 export function Section0() {
@@ -37,6 +38,7 @@ export function Section0() {
       <SelectField
         name="s0.backendDataAccess"
         label="Backend data access"
+        info={FIELD_INFO.backendAccess}
         help="Without backend revenue or CRM outcome data, every number you report will be Meta's."
         options={[
           { value: 'full', label: 'Full read access' },

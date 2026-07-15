@@ -6,6 +6,7 @@ import {
   MATCH_PARAMETERS,
   type MatchParameter,
 } from '../../../lib/schema/sections/s3-measurement';
+import { FIELD_INFO } from '../../../lib/planning-copy';
 import {
   CheckboxField,
   NumberField,
@@ -57,6 +58,7 @@ export function Section3({ calc }: { calc: DerivedCalcs | null }) {
       <SelectField
         name="s3.capiMode"
         label="Conversions API"
+        info={FIELD_INFO.capi}
         help="Stock CAPI apps typically drop ~20% of events and pass minimal parameters. §5.2"
         options={[
           { value: 'none', label: 'None' },
@@ -67,11 +69,13 @@ export function Section3({ calc }: { calc: DerivedCalcs | null }) {
       <NumberField
         name="s3.emqScore"
         label="Event Match Quality (0–10)"
+        info={FIELD_INFO.emq}
         help="Blocks below 5, warns below 7. §5.4"
       />
       <TriStateField
         name="s3.eventIdDedup"
         label="event_id deduplication verified — stable business ID, identical across browser and server"
+        info={FIELD_INFO.dedup}
       />
       <div className="sm:col-span-2">
         <span className="mb-1 block text-xs font-medium text-neutral-600">
@@ -102,6 +106,7 @@ export function Section3({ calc }: { calc: DerivedCalcs | null }) {
       <NumberField
         name="s3.reconciliation.backendOrders7d"
         label="Backend orders/leads, last 7 days"
+        info={FIELD_INFO.receiptRatio}
       />
       <NumberField
         name="s3.reconciliation.eventsManagerReceived7d"
@@ -147,7 +152,7 @@ export function Section3({ calc }: { calc: DerivedCalcs | null }) {
           Privacy — cannot be overridden
         </h4>
       </div>
-      <YesNoField name="s3.privacy.dpaExecuted" label="DPA executed with client" />
+      <YesNoField name="s3.privacy.dpaExecuted" label="DPA executed with client" info={FIELD_INFO.dpa} />
       <SelectField
         name="s3.privacy.lawfulBasis.kind"
         label="Lawful basis documented"
@@ -160,6 +165,7 @@ export function Section3({ calc }: { calc: DerivedCalcs | null }) {
       <YesNoField
         name="s3.privacy.consentGating"
         label="Consent gating implemented — events do not fire for non-consenting users"
+        info={FIELD_INFO.consentGating}
       />
       <YesNoField
         name="s3.privacy.retentionPolicyDocumented"
@@ -178,6 +184,7 @@ export function Section3({ calc }: { calc: DerivedCalcs | null }) {
       <SelectField
         name="s3.attribution.setting"
         label="Attribution setting (recorded)"
+        info={FIELD_INFO.attributionSetting}
         options={[
           { value: '7d_click', label: '7d click' },
           { value: '7d_click_1d_engage', label: '7d click + 1d engaged view' },
@@ -192,6 +199,7 @@ export function Section3({ calc }: { calc: DerivedCalcs | null }) {
         name="s3.attribution.viewThroughSharePct"
         label="View-through share of conversions (historical)"
         suffix="%"
+        info={FIELD_INFO.viewThrough}
         help="Above 50%: most conversions come from people who never touched the ad. §6.2"
       />
     </SectionCard>

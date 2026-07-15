@@ -2,11 +2,51 @@
  * Form field primitives bound to RHF via useFormContext. All numeric inputs
  * map '' → null (never NaN); errors render only after blur (mode: onBlur).
  */
+import { useState } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 import type { FieldPath } from 'react-hook-form';
 import type { BriefFormValues } from '../../lib/schema/campaign-brief';
+import type { FieldInfo } from '../../lib/planning-copy';
 
 type Name = FieldPath<BriefFormValues>;
+
+/** ⓘ "why we ask" popover — teaches the term while explaining the field. */
+export function InfoPopover({ info }: { info: FieldInfo }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-block align-middle">
+      <button
+        type="button"
+        aria-label={`What is ${info.term}?`}
+        onClick={(event) => {
+          event.preventDefault();
+          setOpen((value) => !value);
+        }}
+        onBlur={() => setOpen(false)}
+        className={`ml-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border text-[9px] leading-none ${
+          open
+            ? 'border-neutral-600 bg-neutral-600 text-white'
+            : 'border-neutral-300 text-neutral-400 hover:border-neutral-500 hover:text-neutral-600'
+        }`}
+      >
+        i
+      </button>
+      {open && (
+        <span className="absolute left-1/2 top-5 z-30 block w-64 -translate-x-1/2 rounded-md border border-neutral-200 bg-white p-2.5 text-left shadow-lg">
+          <span className="block text-[11px] font-semibold text-neutral-800">
+            {info.term}
+          </span>
+          <span className="mt-0.5 block text-[11px] font-normal leading-snug text-neutral-600">
+            {info.plain}
+          </span>
+          <span className="mt-1 block text-[10px] text-neutral-400">
+            playbook {info.ref}
+          </span>
+        </span>
+      )}
+    </span>
+  );
+}
 
 export function FieldShell({
   label,
@@ -14,17 +54,20 @@ export function FieldShell({
   error,
   children,
   wide,
+  info,
 }: {
   label: string;
   help?: string;
   error?: string;
   children: React.ReactNode;
   wide?: boolean;
+  info?: FieldInfo;
 }) {
   return (
     <label className={`block ${wide ? 'sm:col-span-2' : ''}`}>
       <span className="mb-1 block text-xs font-medium text-neutral-600">
         {label}
+        {info && <InfoPopover info={info} />}
       </span>
       {children}
       {help && !error && (
@@ -47,6 +90,7 @@ export function NumberField({
   prefix,
   suffix,
   step,
+  info,
 }: {
   name: Name;
   label: string;
@@ -54,11 +98,12 @@ export function NumberField({
   prefix?: string;
   suffix?: string;
   step?: string;
+  info?: FieldInfo;
 }) {
   const { control } = useFormContext<BriefFormValues>();
   const { field, fieldState } = useController({ control, name });
   return (
-    <FieldShell label={label} help={help} error={fieldState.error?.message}>
+    <FieldShell label={label} help={help} error={fieldState.error?.message} info={info}>
       <div className="relative">
         {prefix && (
           <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-neutral-400">
@@ -145,6 +190,7 @@ export function TextAreaField({
   minChars,
   placeholder,
   wide,
+  info,
 }: {
   name: Name;
   label: string;
@@ -153,12 +199,13 @@ export function TextAreaField({
   minChars?: number;
   placeholder?: string;
   wide?: boolean;
+  info?: FieldInfo;
 }) {
   const { control } = useFormContext<BriefFormValues>();
   const { field, fieldState } = useController({ control, name });
   const value = (field.value as string | null) ?? '';
   return (
-    <FieldShell label={label} help={help} error={fieldState.error?.message} wide={wide ?? true}>
+    <FieldShell label={label} help={help} error={fieldState.error?.message} wide={wide ?? true} info={info}>
       <textarea
         rows={rows ?? 3}
         className={`${inputClass} resize-y`}
@@ -190,17 +237,19 @@ export function SelectField({
   help,
   options,
   placeholder,
+  info,
 }: {
   name: Name;
   label: string;
   help?: string;
   options: { value: string; label: string }[];
   placeholder?: string;
+  info?: FieldInfo;
 }) {
   const { control } = useFormContext<BriefFormValues>();
   const { field, fieldState } = useController({ control, name });
   return (
-    <FieldShell label={label} help={help} error={fieldState.error?.message}>
+    <FieldShell label={label} help={help} error={fieldState.error?.message} info={info}>
       <select
         className={inputClass}
         value={(field.value as string | null) ?? ''}
@@ -225,16 +274,18 @@ export function RadioGroupField({
   label,
   options,
   help,
+  info,
 }: {
   name: Name;
   label: string;
   help?: string;
   options: { value: string; label: string; description?: string }[];
+  info?: FieldInfo;
 }) {
   const { control } = useFormContext<BriefFormValues>();
   const { field, fieldState } = useController({ control, name });
   return (
-    <FieldShell label={label} help={help} error={fieldState.error?.message} wide>
+    <FieldShell label={label} help={help} error={fieldState.error?.message} wide info={info}>
       <div className="space-y-1.5">
         {options.map((option) => (
           <label
@@ -303,16 +354,18 @@ export function YesNoField({
   name,
   label,
   help,
+  info,
 }: {
   name: Name;
   label: string;
   help?: string;
+  info?: FieldInfo;
 }) {
   const { control } = useFormContext<BriefFormValues>();
   const { field, fieldState } = useController({ control, name });
   const value = field.value as boolean | null;
   return (
-    <FieldShell label={label} help={help} error={fieldState.error?.message}>
+    <FieldShell label={label} help={help} error={fieldState.error?.message} info={info}>
       <div className="flex gap-1.5">
         {[
           { v: true, label: 'Yes' },
@@ -343,10 +396,12 @@ export function TriStateField({
   name,
   label,
   help,
+  info,
 }: {
   name: Name;
   label: string;
   help?: string;
+  info?: FieldInfo;
 }) {
   const { control } = useFormContext<BriefFormValues>();
   const status = useController({ control, name: `${name}.status` as Name });
@@ -362,7 +417,10 @@ export function TriStateField({
 
   return (
     <div className="sm:col-span-2">
-      <span className="mb-1 block text-xs font-medium text-neutral-600">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-neutral-600">
+        {label}
+        {info && <InfoPopover info={info} />}
+      </span>
       <div className="flex flex-wrap items-center gap-1.5">
         {options.map((option) => (
           <button

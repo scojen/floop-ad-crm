@@ -8,6 +8,7 @@ import {
 import type { BriefFormValues } from '../../../lib/schema/campaign-brief';
 import { requiredBuildFor } from '../../../lib/schema/sections/s0-client';
 import type { DerivedCalcs } from '../../../lib/calc/derive';
+import { FIELD_INFO } from '../../../lib/planning-copy';
 import {
   CheckboxField,
   CurrencyOrPercentField,
@@ -50,6 +51,7 @@ export function Section1({ calc }: { calc: DerivedCalcs | null }) {
             : 'Required contribution after ads (per raw lead)'
         }
         prefix="$"
+        info={FIELD_INFO.requiredContribution}
       />
 
       <WhatIfPanel visible={build === 'ecom'} calc={calc} />
@@ -67,12 +69,12 @@ function EcomBuild() {
           1a · Contribution build (ecommerce)
         </h4>
       </div>
-      <NumberField name="s1.ecom.aov" label="Gross order value (AOV)" prefix="$" />
+      <NumberField name="s1.ecom.aov" label="Gross order value (AOV)" prefix="$" info={FIELD_INFO.aov} />
       <CurrencyOrPercentField
         name="s1.ecom.promo"
         label="Avg promo / discount per order"
       />
-      <NumberField name="s1.ecom.cogs" label="COGS" prefix="$" />
+      <NumberField name="s1.ecom.cogs" label="COGS" prefix="$" info={FIELD_INFO.cogs} />
       <NumberField name="s1.ecom.fulfillment" label="Fulfillment & shipping" prefix="$" />
       <NumberField name="s1.ecom.paymentPct" label="Payment processing %" suffix="%" />
       <NumberField name="s1.ecom.paymentFixed" label="Payment fixed fee" prefix="$" />
@@ -186,11 +188,13 @@ function LeadGenBuild() {
         label="Expected COLLECTED contribution per closed deal"
         prefix="$"
         help="Collected, not signed. A signed case is not cash. §2.5"
+        info={FIELD_INFO.collectedContribution}
       />
       <NumberField
         name="s1.leadGen.pQualGivenLeadPct"
         label="P(qualified | lead)"
         suffix="%"
+        info={FIELD_INFO.funnelRates}
       />
       <NumberField
         name="s1.leadGen.pApptGivenQualPct"
@@ -224,11 +228,13 @@ function LtvBlock() {
         name="s1.ltv.discountRateAnnualPct"
         label="Discount rate (annual)"
         suffix="%"
+        info={FIELD_INFO.discountRate}
       />
       <NumberField
         name="s1.ltv.plannedMonthlySpend"
         label="Planned monthly spend"
         prefix="$"
+        info={FIELD_INFO.plannedSpend}
       />
       <CheckboxField
         name="s1.ltv.cashBufferConfirmed"

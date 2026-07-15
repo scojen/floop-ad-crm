@@ -13,6 +13,7 @@ import {
   SUGGESTED_STANDARD_EVENTS,
   type Objective,
 } from '../../../lib/schema/sections/s4-structure';
+import { FIELD_INFO } from '../../../lib/planning-copy';
 import {
   CheckboxField,
   DateField,
@@ -79,6 +80,7 @@ export function Section4({ calc }: { calc: DerivedCalcs | null }) {
       <NumberField
         name="s4.expectedWeeklyEventVolume"
         label="Expected weekly volume of this event at planned budget"
+        info={FIELD_INFO.learningPhase}
       />
 
       <div className="sm:col-span-2 mt-1 border-t border-neutral-100 pt-3">
@@ -89,6 +91,7 @@ export function Section4({ calc }: { calc: DerivedCalcs | null }) {
       <SelectField
         name="s4.budgetStrategy"
         label="Budget strategy"
+        info={FIELD_INFO.budgetStrategy}
         options={[
           { value: 'CBO', label: 'Campaign budget (CBO)' },
           { value: 'ABO', label: 'Ad set budget (ABO)' },
@@ -99,6 +102,7 @@ export function Section4({ calc }: { calc: DerivedCalcs | null }) {
         name="s4.targetCpa"
         label="Target CPA"
         prefix="$"
+        info={FIELD_INFO.targetCpa}
         help="Drives the learning-phase feasibility math. §3.3"
       />
       <FeasibilityReadout calc={calc} />

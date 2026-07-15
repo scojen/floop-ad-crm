@@ -8,6 +8,7 @@ import {
   type Derivation,
 } from '../components/planning/ComputedSidebar';
 import { LockedOverlay } from '../components/planning/LockedOverlay';
+import { VerdictBanner } from '../components/planning/VerdictBanner';
 import { Section0 } from '../components/planning/sections/Section0';
 import { Section1 } from '../components/planning/sections/Section1';
 import { Section2 } from '../components/planning/sections/Section2';
@@ -166,6 +167,8 @@ function Editor({ brief }: { brief: Brief }) {
             </button>
           </div>
         </header>
+
+        <VerdictBanner />
 
         {submitProblems.length > 0 && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

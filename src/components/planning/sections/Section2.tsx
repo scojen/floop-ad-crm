@@ -1,6 +1,7 @@
 import { useFormContext } from 'react-hook-form';
 import type { BriefFormValues } from '../../../lib/schema/campaign-brief';
 import type { DerivedCalcs } from '../../../lib/calc/derive';
+import { FIELD_INFO } from '../../../lib/planning-copy';
 import {
   DateField,
   RadioGroupField,
@@ -76,6 +77,7 @@ export function Section2({ calc }: { calc: DerivedCalcs | null }) {
       <TextAreaField
         name="s2.changeOurMind.text"
         label="5 · What would change our mind? (the pre-registration)"
+        info={FIELD_INFO.preRegistration}
         placeholder="e.g. If cost per qualified lead stays above $120 for the first 3 weeks at full budget…"
       />
       <DateField name="s2.changeOurMind.decisionDate" label="…and when will we decide?" />
@@ -83,6 +85,7 @@ export function Section2({ calc }: { calc: DerivedCalcs | null }) {
       <RadioGroupField
         name="s2.purpose"
         label="Campaign purpose"
+        info={FIELD_INFO.earningLearning}
         help="You cannot get both from the same ad set. Choose one and write it down. §3.7"
         options={[
           {

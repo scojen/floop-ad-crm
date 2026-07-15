@@ -39,6 +39,27 @@ export function GateRow({
     setValue('acknowledgments', next, { shouldDirty: true });
   };
 
+  const jumpToSection = () => {
+    const element = document.getElementById(gate.section);
+    if (!element) return;
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    element.classList.add(
+      'ring-2',
+      'ring-offset-2',
+      gate.level === 'BLOCKING' ? 'ring-red-400' : 'ring-amber-400',
+    );
+    setTimeout(
+      () =>
+        element.classList.remove(
+          'ring-2',
+          'ring-offset-2',
+          'ring-red-400',
+          'ring-amber-400',
+        ),
+      2200,
+    );
+  };
+
   return (
     <div className={`rounded-md border ${style.border} bg-white p-2`}>
       <div className="flex items-start gap-2">
@@ -53,6 +74,13 @@ export function GateRow({
           <p className="mt-0.5 text-[11px] leading-snug text-neutral-600">
             {gate.message}
           </p>
+          <button
+            type="button"
+            onClick={jumpToSection}
+            className="mt-1 text-[11px] text-neutral-500 underline hover:text-neutral-700"
+          >
+            Go to section {gate.section.replace('s', '§')} →
+          </button>
 
           {!readOnly && gate.level === 'WARNING' && (
             <label className="mt-1.5 flex items-center gap-1.5 text-[11px] text-neutral-600">

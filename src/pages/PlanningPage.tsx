@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { clientPath, putJson } from '../api/crmClient';
 import {
   useCreateBrief,
   useDeleteBrief,
   usePlanningBriefs,
 } from '../api/queries';
+import { ARCHETYPES } from '../lib/archetypes';
 import { timeAgo } from '../lib/time';
 
 /** Brief list — every campaign starts here, not in Ads Manager. */
@@ -15,20 +17,38 @@ export function PlanningPage() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [archetypeId, setArchetypeId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const create = () => {
-    const trimmed = name.trim();
+    const archetype = ARCHETYPES.find((entry) => entry.id === archetypeId);
+    const trimmed = name.trim() || archetype?.name.split('—')[0].trim() || '';
     if (!trimmed) return;
     setError(null);
     createBrief.mutate(
       { name: trimmed },
       {
-        onSuccess: (brief) => navigate(`/planning/${brief.id}`),
+        onSuccess: async (brief) => {
+          if (archetype) {
+            // Seed the draft with the archetype's payload before opening.
+            try {
+              await putJson(clientPath(`/planning/briefs/${brief.id}/draft`), {
+                payload: archetype.build(),
+              });
+            } catch {
+              // Non-fatal — the editor opens on an empty draft instead.
+            }
+          }
+          navigate(`/planning/${brief.id}`);
+        },
         onError: (mutationError) => setError(mutationError.message),
       },
     );
   };
+
+  const selectedArchetype = ARCHETYPES.find(
+    (entry) => entry.id === archetypeId,
+  );
 
   return (
     <div>
@@ -58,23 +78,48 @@ export function PlanningPage() {
       )}
 
       {creating && (
-        <div className="mb-4 flex gap-2 rounded-lg border border-neutral-300 bg-white p-3">
-          <input
-            autoFocus
-            placeholder="Brief name — e.g. Vellum Summer Launch"
-            className="flex-1 rounded-md border border-neutral-200 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            onKeyDown={(event) => event.key === 'Enter' && create()}
-          />
-          <button
-            type="button"
-            disabled={!name.trim() || createBrief.isPending}
-            onClick={create}
-            className="rounded-md bg-neutral-800 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
-          >
-            Create
-          </button>
+        <div className="mb-4 space-y-2 rounded-lg border border-neutral-300 bg-white p-3">
+          <div className="flex flex-wrap gap-2">
+            <input
+              autoFocus
+              placeholder="Brief name — e.g. Vellum Summer Launch"
+              className="min-w-48 flex-1 rounded-md border border-neutral-200 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && create()}
+            />
+            <select
+              className="rounded-md border border-neutral-200 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500"
+              value={archetypeId}
+              onChange={(event) => setArchetypeId(event.target.value)}
+              title="Start from a playbook archetype"
+            >
+              <option value="">Blank brief</option>
+              {ARCHETYPES.map((archetype) => (
+                <option key={archetype.id} value={archetype.id}>
+                  {archetype.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={
+                (!name.trim() && !archetypeId) || createBrief.isPending
+              }
+              onClick={create}
+              className="rounded-md bg-neutral-800 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+            >
+              Create
+            </button>
+          </div>
+          {selectedArchetype && (
+            <p className="text-xs text-neutral-500">
+              <span className="font-medium text-neutral-700">
+                {selectedArchetype.description}
+              </span>{' '}
+              {selectedArchetype.lesson}
+            </p>
+          )}
         </div>
       )}
 

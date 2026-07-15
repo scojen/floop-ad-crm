@@ -5,21 +5,12 @@
  * derivation to a ref for autosave/submit, and lifts `economicsValid`
  * so the page can lock/unlock sections without re-rendering per keystroke.
  */
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
-import { deriveCalcs, type DerivedCalcs } from '../../lib/calc/derive';
-import { evaluateGates } from '../../lib/gates/evaluate';
-import type { GateResult } from '../../lib/gates/types';
-import {
-  briefFormSchema,
-  type BriefFormValues,
-} from '../../lib/schema/campaign-brief';
+import { useEffect, useState } from 'react';
+import { METRIC_SENTENCES } from '../../lib/planning-copy';
 import { GateRow } from './GateRow';
+import { useLiveDerivation, type Derivation } from './useLiveDerivation';
 
-export interface Derivation {
-  calc: DerivedCalcs;
-  gates: GateResult[];
-}
+export type { Derivation } from './useLiveDerivation';
 
 export function ComputedSidebar({
   derivationRef,
@@ -30,20 +21,7 @@ export function ComputedSidebar({
   onDerived: (derivation: Derivation) => void;
   readOnly?: boolean;
 }) {
-  const { control } = useFormContext<BriefFormValues>();
-  const watched = useWatch({ control });
-  const deferred = useDeferredValue(watched);
-
-  const derivation = useMemo<Derivation>(() => {
-    // useWatch returns a DeepPartial view; normalize through the schema so
-    // the calc engine always sees a complete shape.
-    const parsed = briefFormSchema.safeParse(deferred);
-    const values = parsed.success
-      ? parsed.data
-      : (deferred as unknown as BriefFormValues);
-    const calc = deriveCalcs(values);
-    return { calc, gates: evaluateGates(values, calc) };
-  }, [deferred]);
+  const derivation = useLiveDerivation();
 
   useEffect(() => {
     derivationRef.current = derivation;
@@ -133,18 +111,38 @@ function SidebarPanel({
               ? `${money(calc.contribution.contribution)} (${calc.contribution.contributionPctOfGross}%)`
               : '—'
           }
+          sentence={METRIC_SENTENCES.contribution(calc)}
         />
         {calc.build === 'leadGen' && (
-          <Row label="EV per raw lead" value={money(calc.evPerRawLead)} />
+          <Row
+            label="EV per raw lead"
+            value={money(calc.evPerRawLead)}
+            sentence={METRIC_SENTENCES.evPerRawLead(calc)}
+          />
         )}
         <Row
           label={calc.build === 'leadGen' ? 'Allowable CPL' : 'Allowable CAC'}
           value={money(calc.targets.allowableCac)}
           strong
+          sentence={METRIC_SENTENCES.allowableCac(calc)}
         />
-        <Row label="Break-even ROAS" value={x(calc.targets.breakEvenRoas)} strong />
-        <Row label="Target ROAS" value={x(calc.targets.targetRoas)} strong />
-        <Row label="LTV : CAC" value={ratio(calc.ltv.ltvToCac)} />
+        <Row
+          label="Break-even ROAS"
+          value={x(calc.targets.breakEvenRoas)}
+          strong
+          sentence={METRIC_SENTENCES.breakEvenRoas(calc)}
+        />
+        <Row
+          label="Target ROAS"
+          value={x(calc.targets.targetRoas)}
+          strong
+          sentence={METRIC_SENTENCES.targetRoas(calc)}
+        />
+        <Row
+          label="LTV : CAC"
+          value={ratio(calc.ltv.ltvToCac)}
+          sentence={METRIC_SENTENCES.ltvToCac(calc)}
+        />
         <Row
           label="Payback"
           value={
@@ -152,10 +150,12 @@ function SidebarPanel({
               ? `${calc.ltv.paybackMonthsFractional} months`
               : '—'
           }
+          sentence={METRIC_SENTENCES.payback(calc)}
         />
         <Row
           label="Peak cash outstanding"
           value={money(calc.ltv.peakCashOutstanding)}
+          sentence={METRIC_SENTENCES.peakCash(calc)}
         />
       </SidebarGroup>
 
@@ -163,6 +163,7 @@ function SidebarPanel({
         <Row
           label="Min budget / ad set"
           value={money(calc.learning.minDailyBudgetPerAdSet)}
+          sentence={METRIC_SENTENCES.minBudget(calc)}
         />
         <Row
           label="Max supportable ad sets"
@@ -172,7 +173,11 @@ function SidebarPanel({
           label="Projected events / week"
           value={calc.learning.projectedWeeklyEvents ?? '—'}
         />
-        <Row label="Receipt ratio" value={calc.receiptRatio ?? '—'} />
+        <Row
+          label="Receipt ratio"
+          value={calc.receiptRatio ?? '—'}
+          sentence={METRIC_SENTENCES.receiptRatio(calc)}
+        />
       </SidebarGroup>
 
       <SidebarGroup
@@ -214,19 +219,29 @@ function Row({
   label,
   value,
   strong,
+  sentence,
 }: {
   label: string;
   value: string | number;
   strong?: boolean;
+  /** Plain-English translation, professional term included — teaches while it works. */
+  sentence?: string | null;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-2 py-0.5">
-      <span className="text-xs text-neutral-500">{label}</span>
-      <span
-        className={`tabular-nums ${strong ? 'font-semibold text-neutral-900' : 'text-neutral-700'}`}
-      >
-        {value}
-      </span>
+    <div className="py-0.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs text-neutral-500">{label}</span>
+        <span
+          className={`tabular-nums ${strong ? 'font-semibold text-neutral-900' : 'text-neutral-700'}`}
+        >
+          {value}
+        </span>
+      </div>
+      {sentence && (
+        <p className="mt-0.5 text-[10px] leading-snug text-neutral-400">
+          {sentence}
+        </p>
+      )}
     </div>
   );
 }
