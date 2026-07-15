@@ -34,8 +34,8 @@ export type MatchParameter = (typeof MATCH_PARAMETERS)[number];
 
 const parameterChecks = z.object(
   Object.fromEntries(
-    MATCH_PARAMETERS.map((key) => [key, z.boolean().default(false)]),
-  ) as Record<MatchParameter, z.ZodDefault<z.ZodBoolean>>,
+    MATCH_PARAMETERS.map((key) => [key, z.boolean()]),
+  ) as Record<MatchParameter, z.ZodBoolean>,
 );
 
 /** S3 — Measurement readiness (playbook ch. 5). */
@@ -62,11 +62,11 @@ export const s3Schema = z.object({
     lawfulBasis: z
       .object({
         kind: z.enum(['consent', 'legitimate_interest', 'other']).nullable(),
-        detail: z.string().default(''),
+        detail: z.string(),
       })
-      .default({ kind: null, detail: '' }),
+      ,
     consentGating: z.boolean().nullable(),
-    prohibitedDataAttestation: z.boolean().default(false),
+    prohibitedDataAttestation: z.boolean(),
     retentionPolicyDocumented: z.boolean().nullable(),
   }),
   attribution: z.object({

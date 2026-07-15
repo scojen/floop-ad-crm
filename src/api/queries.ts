@@ -3,7 +3,14 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { clientPath, getJson, patchJson, postJson } from './crmClient';
+import {
+  clientPath,
+  deleteJson,
+  getJson,
+  patchJson,
+  postJson,
+  putJson,
+} from './crmClient';
 import type {
   CampaignListResponse,
   PerformanceBreakdownResponse,
@@ -57,6 +64,8 @@ export const queryKeys = {
   automationRuns: (ruleId: string) =>
     ['crm', 'automation-runs', ruleId] as const,
   reports: (name: string) => ['crm', 'reports', name] as const,
+  planningBriefs: ['planning', 'briefs'] as const,
+  planningBrief: (id: string) => ['planning', 'brief', id] as const,
 };
 
 export function useCrmUsers() {
@@ -460,6 +469,94 @@ export function useCreativeReport() {
       getJson<CreativePerformanceResponse>(
         clientPath('/crm/reports/creative-performance'),
       ),
+  });
+}
+
+export function usePlanningBriefs() {
+  return useQuery({
+    queryKey: queryKeys.planningBriefs,
+    queryFn: () =>
+      getJson<import('../types/planning').BriefsListResponse>(
+        clientPath('/planning/briefs'),
+      ),
+  });
+}
+
+export function usePlanningBrief(briefId: string) {
+  return useQuery({
+    queryKey: queryKeys.planningBrief(briefId),
+    queryFn: () =>
+      getJson<import('../types/planning').Brief>(
+        clientPath(`/planning/briefs/${briefId}`),
+      ),
+    // Never background-refetch mid-editing — autosave owns freshness.
+    staleTime: Infinity,
+  });
+}
+
+export function useCreateBrief() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string }) =>
+      postJson<import('../types/planning').Brief>(
+        clientPath('/planning/briefs'),
+        input,
+      ),
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.planningBriefs,
+      });
+    },
+  });
+}
+
+export function useSaveBriefDraft(briefId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: import('../types/planning').SaveDraftBody) =>
+      putJson<{ updatedAt: string }>(
+        clientPath(`/planning/briefs/${briefId}/draft`),
+        body,
+      ),
+    retry: 2,
+    onSuccess: (data) => {
+      // Merge updatedAt only — invalidating would clobber in-flight typing.
+      queryClient.setQueryData(
+        queryKeys.planningBrief(briefId),
+        (previous: import('../types/planning').Brief | undefined) =>
+          previous ? { ...previous, updatedAt: data.updatedAt } : previous,
+      );
+    },
+  });
+}
+
+export function useSubmitBrief(briefId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: import('../types/planning').SaveDraftBody) =>
+      postJson<import('../types/planning').SubmitResponse>(
+        clientPath(`/planning/briefs/${briefId}/submit`),
+        body,
+      ),
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.planningBrief(briefId), data.brief);
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.planningBriefs,
+      });
+    },
+  });
+}
+
+export function useDeleteBrief() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ briefId }: { briefId: string }) =>
+      deleteJson(clientPath(`/planning/briefs/${briefId}`)),
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.planningBriefs,
+      });
+    },
   });
 }
 

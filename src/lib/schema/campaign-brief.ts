@@ -22,15 +22,15 @@ const overrideSchema = z.object({
 });
 
 export const briefFormSchema = z.object({
-  schemaVersion: z.literal(SCHEMA_VERSION).default(SCHEMA_VERSION),
+  schemaVersion: z.literal(SCHEMA_VERSION),
   s0: s0Schema,
   s1: s1Schema,
   s2: s2Schema,
   s3: s3Schema,
   s4: s4Schema,
   /** Keyed by gate id. Draft state — pruned of stale entries only at submit. */
-  acknowledgments: z.record(z.string(), ackSchema).default({}),
-  overrides: z.record(z.string(), overrideSchema).default({}),
+  acknowledgments: z.record(z.string(), ackSchema),
+  overrides: z.record(z.string(), overrideSchema),
 });
 export type BriefFormValues = z.infer<typeof briefFormSchema>;
 

@@ -51,7 +51,7 @@ function headers(): Record<string, string> {
 }
 
 async function request<T>(
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
 ): Promise<T> {
@@ -74,6 +74,9 @@ async function request<T>(
     }
     throw new ApiError(response.status, message);
   }
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return (await response.json()) as T;
 }
 
@@ -87,6 +90,14 @@ export function postJson<T>(path: string, body?: unknown): Promise<T> {
 
 export function patchJson<T>(path: string, body?: unknown): Promise<T> {
   return request<T>('PATCH', path, body);
+}
+
+export function putJson<T>(path: string, body?: unknown): Promise<T> {
+  return request<T>('PUT', path, body);
+}
+
+export function deleteJson<T = void>(path: string): Promise<T> {
+  return request<T>('DELETE', path);
 }
 
 /** Prefix for the single-tenant client's routes. */

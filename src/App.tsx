@@ -7,6 +7,8 @@ import { InboxPage } from './pages/InboxPage';
 import { LeadDetailPage } from './pages/LeadDetailPage';
 import { MyDayPage } from './pages/MyDayPage';
 import { PipelinePage } from './pages/PipelinePage';
+import { PlanningPage } from './pages/PlanningPage';
+import { BriefEditorPage } from './pages/BriefEditorPage';
 import { ReportsPage } from './pages/ReportsPage';
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/pipeline" element={<PipelinePage />} />
           <Route path="/leads/:leadId" element={<LeadDetailPage />} />
+          <Route path="/planning" element={<PlanningPage />} />
+          <Route path="/planning/:briefId" element={<BriefEditorPage />} />
           <Route path="/my-day" element={<MyDayPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/automations" element={<AutomationsPage />} />

@@ -93,10 +93,10 @@ export const s4Schema = z.object({
   performanceGoal: z.string().nullable(),
   /** ⭐ The most important field on the page (§3.2). */
   optimizationEvent: z.object({
-    name: z.string().default(''),
-    isStandard: z.boolean().default(true),
+    name: z.string(),
+    isStandard: z.boolean(),
   }),
-  whyThisEvent: z.string().default(''),
+  whyThisEvent: z.string(),
   expectedWeeklyEventVolume: nullableNumber,
   budgetStrategy: z.enum(['CBO', 'ABO']).nullable(),
   campaignDailyBudget: moneyValue,
@@ -107,10 +107,10 @@ export const s4Schema = z.object({
         id: z.string(),
         purpose: z.enum(AD_SET_PURPOSES).nullable(),
         dailyBudget: moneyValue,
-        audienceSummary: z.string().default(''),
+        audienceSummary: z.string(),
       }),
     )
-    .default([]),
+    ,
   /** Required when G-S4-LEARNING-INFEASIBLE fires. */
   decisionWindowDays: z
     .union([z.literal(7), z.literal(30), z.literal(60), z.literal(90)])
@@ -121,7 +121,7 @@ export const s4Schema = z.object({
   }),
   reportingWindow: z.enum(REPORTING_WINDOWS).nullable(),
   baselinePeriod: z.object({ from: isoDate, to: isoDate }),
-  attributionChangeAcknowledged: z.boolean().default(false),
+  attributionChangeAcknowledged: z.boolean(),
 });
 export type S4Values = z.infer<typeof s4Schema>;
 

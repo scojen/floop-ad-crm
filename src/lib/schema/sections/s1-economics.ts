@@ -21,11 +21,11 @@ export const ecomBuildSchema = z.object({
     .array(
       z.object({
         id: z.string(),
-        label: z.string().default(''),
+        label: z.string(),
         amount: moneyValue,
       }),
     )
-    .default([]),
+    ,
 });
 export type EcomBuildValues = z.infer<typeof ecomBuildSchema>;
 
@@ -65,8 +65,8 @@ export const ltvSchema = z.object({
   }),
   discountRateAnnualPct: pct0to100,
   plannedMonthlySpend: moneyValue,
-  cashBufferConfirmed: z.boolean().default(false),
-  cashBufferNote: z.string().default(''),
+  cashBufferConfirmed: z.boolean(),
+  cashBufferNote: z.string(),
 });
 
 export const s1Schema = z.object({

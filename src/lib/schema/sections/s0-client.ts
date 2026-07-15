@@ -56,12 +56,12 @@ export function requiredBuildFor(
 }
 
 export const s0Schema = z.object({
-  clientName: z.string().default(''),
+  clientName: z.string(),
   vertical: z.enum(VERTICALS).nullable(),
   businessModel: z.enum(BUSINESS_MODELS).nullable(),
   engagementStart: isoDate,
-  mediaLead: z.string().default(''),
-  creativeLead: z.string().default(''),
+  mediaLead: z.string(),
+  creativeLead: z.string(),
   backendDataAccess: z.enum(['full', 'partial', 'none']).nullable(),
 });
 export type S0Values = z.infer<typeof s0Schema>;
