@@ -7,6 +7,7 @@ import {
   ComputedSidebar,
   type Derivation,
 } from '../components/planning/ComputedSidebar';
+import { AskFloopPanel } from '../components/planning/AskFloopPanel';
 import { LockedOverlay } from '../components/planning/LockedOverlay';
 import { VerdictBanner } from '../components/planning/VerdictBanner';
 import { Section0 } from '../components/planning/sections/Section0';
@@ -195,6 +196,7 @@ function Editor({ brief }: { brief: Brief }) {
           </div>
           <ComputedSidebar derivationRef={derivationRef} onDerived={onDerived} />
         </div>
+        <AskFloopPanel briefId={brief.id} briefName={brief.name} />
       </div>
     </FormProvider>
   );
@@ -296,6 +298,7 @@ function SubmittedBriefView({ brief }: { brief: Brief }) {
       <pre className="overflow-x-auto rounded-lg border border-neutral-200 bg-white p-4 text-xs leading-relaxed text-neutral-800">
         {tab === 'markdown' ? (brief.artifactMarkdown ?? '') : briefJson}
       </pre>
+      <AskFloopPanel briefId={brief.id} briefName={brief.name} />
     </div>
   );
 }
